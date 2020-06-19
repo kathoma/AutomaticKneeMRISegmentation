@@ -1,44 +1,4 @@
-# from __future__ import print_function, division
-
-# import sys
-# sys.path.insert(0, 'lib')
-
 import numpy as np
-# import random
-# # import keras as k
-
-
-# import scipy.io as sio
-
-
-# import pandas as pd
-# from skimage import io, transform
-# import matplotlib.pyplot as plt
-
-# import pickle
-# import scipy.ndimage as ndimage
-
-# import math
-# import os
-
-# from loss_functions import dice_loss, dice_loss_test, dice_loss_test_volume
-# from models import unet_2d_model
-# from utils import make_giant_mat, make_dictionary, make_echo_dict
-
-# import scipy.linalg as la
-# from joblib import Parallel, delayed
-
-
-# from sklearn.ensemble import RandomForestClassifier
-# from sklearn.linear_model import LogisticRegression
-# from sklearn.metrics import f1_score
-
-# from scipy.optimize import curve_fit
-
-# from skimage import measure
-# import scipy.stats as ss
-
-# import skimage
 from lib import pydicom
 import os
 import nibabel as nib
