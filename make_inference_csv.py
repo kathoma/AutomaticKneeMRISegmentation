@@ -63,9 +63,19 @@ def make_expert_csv_all_years(pID, img_dir, dir_to_save):
     return df
     
     
-# def make_model_csv_specific_years(pID, years, path):
+# def make_comparison_csv_one_timepoint(pID, years, img_dir, dir_to_save):
 
     
     
     
-# def make_expert_csv_all_years(pID, path):
+    
+    
+    
+# def make_comparison_csv_two_timepoint_delta(pID, img_dir, dir_to_save):
+    
+    
+    
+    
+    
+    
+    

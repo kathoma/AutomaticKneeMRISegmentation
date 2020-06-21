@@ -1,5 +1,5 @@
 import numpy as np
-from lib import pydicom
+import pydicom
 import os
 import nibabel as nib
 import pandas as pd
@@ -19,7 +19,7 @@ def get_dice_scores(list1, list2, results_path=None):
     '''
     assert len(list1)==len(list2), "list1 and list2 should have the same length"
     
-    f1_list = numpy.empty(len(list1))
+    f1_list = np.empty(len(list1))
     for i,path1 in enumerate(list1):
         seg1 = np.load(path1)
         seg2 = np.load(list2[i])
@@ -30,6 +30,24 @@ def get_dice_scores(list1, list2, results_path=None):
         np.savetxt(results_path, np.array(f1_list), delimiter=",")
     else:
         return f1_list
+    
+def get_jaccard_indices(list1, list2, results_path=None):
+    '''
+    list1 and list2 are lists of full paths to 3D numpy arrays of binary segmentation masks of shape (slices, height, width)
+    '''
+    assert len(list1)==len(list2), "list1 and list2 should have the same length"
+    
+    jaccard_list = np.empty(len(list1))
+    for i,path1 in enumerate(list1):
+        seg1 = np.load(path1)
+        seg2 = np.load(list2[i])
+        j = jaccard(seg1,seg2)
+        jaccard_list[i]=j
+    
+    if results_path:
+        np.savetxt(results_path, np.array(f1_list), delimiter=",")
+    else:
+        return jaccard_list
 
 
 def compare_region_means(list1, list2, results_path=None):
@@ -138,39 +156,39 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None):
         return correlation_dict, mean_abs_diff_dict        
     
     
-parser = argparse.ArgumentParser(description='Compare results derived from two different segmentation methods.')
+# parser = argparse.ArgumentParser(description='Compare results derived from two different segmentation methods.')
 
-parser.add_argument('--region_comparison_csv', 
-                    metavar='csv_file_name', 
-                    type=str,
-                    help='full paths to region_means json files. If CSV has two colums, columns are assumed to be timepoint1_segmentationMethod1 and timepoint1_segmentationMethod2. If CSV has four colums, columns are assumed to be timepoint1_segmentationMethod1, timepoint2_segmentationMethod1, timepoint1_segmentationMethod2, and timepoint2_segmentationMethod2.'
-                    default = None)
+# parser.add_argument('--region_comparison_csv', 
+#                     metavar='csv_file_name', 
+#                     type=str,
+#                     help='full paths to region_means json files. If CSV has two colums, columns are assumed to be timepoint1_segmentationMethod1 and timepoint1_segmentationMethod2. If CSV has four colums, columns are assumed to be timepoint1_segmentationMethod1, timepoint2_segmentationMethod1, timepoint1_segmentationMethod2, and timepoint2_segmentationMethod2.'
+#                     default = None)
 
-parser.add_argument('--results_path', 
-                    metavar='results_path', 
-                    type=str,
-                    help='full path to directory where you want the results saved',
-                    default = None)
+# parser.add_argument('--results_path', 
+#                     metavar='results_path', 
+#                     type=str,
+#                     help='full path to directory where you want the results saved',
+#                     default = None)
 
-args = parser.parse_args()
+# args = parser.parse_args()
 
-# FINISH EVERYTHING BELOW!!
-num_columns = len(pd.read_csv(args.region_comparison_csv).columns) 
-file_array = pd.read_csv(to_segment_csv,
-                             header=0,
-                             names = ['img_dir','seg_path','refined_seg_path','t2_img_path','t2_region_json_path'])
+# # FINISH EVERYTHING BELOW!!
+# num_columns = len(pd.read_csv(args.region_comparison_csv).columns) 
+# file_array = pd.read_csv(to_segment_csv,
+#                              header=0,
+#                              names = ['img_dir','seg_path','refined_seg_path','t2_img_path','t2_region_json_path'])
 
-# Get expert segmentations for comparision purposes, if user specifies a directory of segmentations
-if args.expert_csv:
-    print("--------------------------------")
-    print("Processing expert segmentations")
-    print("--------------------------------")
-    print()
-    process_expert_segmentations(args.expert_csv)
+# # Get expert segmentations for comparision purposes, if user specifies a directory of segmentations
+# if args.expert_csv:
+#     print("--------------------------------")
+#     print("Processing expert segmentations")
+#     print("--------------------------------")
+#     print()
+#     process_expert_segmentations(args.expert_csv)
     
-if args.to_segment_csv:
-    print("--------------------------------")
-    print("Automatically segmenting images")
-    print("--------------------------------")
-    print()
-    model_segmentation(args.to_segment_csv)
+# if args.to_segment_csv:
+#     print("--------------------------------")
+#     print("Automatically segmenting images")
+#     print("--------------------------------")
+#     print()
+#     model_segmentation(args.to_segment_csv)
