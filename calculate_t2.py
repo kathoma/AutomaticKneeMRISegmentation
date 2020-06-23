@@ -25,6 +25,21 @@ import skimage
 def exp_func(mri_time, A, m, b):
     return A*np.exp(-m*mri_time)
 
+def running_mean(x):
+    kernel = np.ones((3,))/3
+    conv = np.convolve(x, kernel, mode = 'valid')
+    temp = np.copy(x)
+    temp[1:-1]=conv
+    
+    # Avoid boundary effects of convolution
+    temp[0]=np.mean(x[0:2])
+    temp[-1]=np.mean(x[-2:])
+    
+    return temp
+
+def strictly_decreasing(vec):
+    return np.all(np.diff(vec)<0)
+
 def fit_t2(t2imgs, t2times, segmentation = None, n_jobs = 4, show_bad_pixels = True):
     
     '''
@@ -58,9 +73,14 @@ def fit_t2(t2imgs, t2times, segmentation = None, n_jobs = 4, show_bad_pixels = T
                     continue
                     
                 try:
+                    if strictly_decreasing(scan[1:,ir,ic]):
+                        echo_corrected = scan[1:,ir,ic]
+                    else:
+                        echo_corrected = running_mean(scan[1:,ir,ic])
+                        
                     parameters,_ = curve_fit(exp_func, 
                                     mri_time[1:], 
-                                    scan[1:,ir,ic], 
+                                    echo_corrected, 
                                     p0 = [scan[0,ir,ic], .03, 0])#, 
 #                                     bounds = ([-np.inf, 0, -np.inf], [np.inf, 100, np.inf]))
                     m = parameters[1]

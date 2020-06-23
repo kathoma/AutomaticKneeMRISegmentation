@@ -4,7 +4,14 @@ import argparse
 import numpy as np
 import pickle
 
-def make_expert_csv_specific_years(pID, years, img_dir, dir_to_save, seg_provided, seg_format = "numpy"):
+def make_expert_csv_specific_years(pID, 
+                                   years, 
+                                   img_dir, 
+                                   dir_to_save, 
+                                   seg_provided, 
+                                   seg_format = "numpy",
+                                   csv_filename="file_paths.csv"):
+    
     # specific pID-year combinations
     assert len(pID) == len(years), "pID and years should have the same length"
     column_names = ['img_dir','seg_path','refined_seg_path','t2_img_path','t2_region_json_path']
@@ -14,7 +21,7 @@ def make_expert_csv_specific_years(pID, years, img_dir, dir_to_save, seg_provide
         img_dir_path = os.path.join(img_dir, "YR"+str(years[i]), pID[i], "T2")
         if seg_provided:
             if seg_format == "nifti":
-                seg_path = os.path.join(dir_to_save, "segmentations", pID[i]+"_"+str(years[i])+"_fc.nii.gz")
+                seg_path = os.path.join(dir_to_save, "segmentations", pID[i]+"_"+str(years[i])+".nii.gz")
             elif seg_format == "numpy":
                 seg_path = os.path.join(dir_to_save, "segmentations", pID[i]+"_"+str(years[i])+".npy") 
         else:
@@ -32,11 +39,15 @@ def make_expert_csv_specific_years(pID, years, img_dir, dir_to_save, seg_provide
                                     
         df = df.append(row_df)
     
-    df.to_csv(path_or_buf = os.path.join(dir_to_save, "file_paths.csv"),index=False)
+    print(dir_to_save)
+    if not os.path.isdir(dir_to_save):
+        os.mkdir(dir_to_save)
+            
+    df.to_csv(path_or_buf = os.path.join(dir_to_save, csv_filename),index=False)
     return df
 
     
-def make_expert_csv_all_years(pID, img_dir, dir_to_save):
+def make_expert_csv_all_years(pID, img_dir, dir_to_save, csv_filename="file_paths.csv"):
     # both years for each pID
     column_names = ['img_dir','seg_path','refined_seg_path','t2_img_path','t2_region_json_path']
     df = pd.DataFrame(columns = column_names)
@@ -58,8 +69,10 @@ def make_expert_csv_all_years(pID, img_dir, dir_to_save):
 
             df = df.append(row_df)
     
+    if not os.path.isdir(dir_to_save):
+        os.mkdir(dir_to_save)
     
-    df.to_csv(path_or_buf = os.path.join(dir_to_save, "file_paths.csv"),index=False)
+    df.to_csv(path_or_buf = os.path.join(dir_to_save, csv_filename),index=False)
     return df
     
     
