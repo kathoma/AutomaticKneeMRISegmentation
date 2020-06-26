@@ -95,6 +95,7 @@ def process_expert_segmentations(expert_file_array):
         
         refined_seg_path = np.array(expert_file_array.refined_seg_path)[i]
         t2_img_path = np.array(expert_file_array.t2_img_path)[i]
+        t2_projected_path = np.array(expert_file_array.t2_projected_path)[i]
         t2_region_json_path = np.array(expert_file_array.t2_region_json_path)[i]
         
         if seg_path[-6:]=='nii.gz':
@@ -137,6 +138,10 @@ def process_expert_segmentations(expert_file_array):
         if not os.path.isdir(os.path.dirname(refined_seg_path)):
             os.mkdir(os.path.dirname(refined_seg_path))
         np.save(refined_seg_path, seg_expert)
+        
+        if not os.path.isdir(os.path.dirname(t2_projected_path)):
+            os.mkdir(os.path.dirname(t2_projected_path))
+        np.save(t2_projected_path, visualization)
 
         if not os.path.isdir(os.path.dirname(t2_region_json_path)):
             os.mkdir(os.path.dirname(t2_region_json_path))
@@ -156,6 +161,7 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
         
         refined_seg_path = np.array(file_array.refined_seg_path)[i]
         t2_img_path = np.array(file_array.t2_img_path)[i]
+        t2_projected_path = np.array(file_array.t2_projected_path)[i]
         t2_region_json_path = np.array(file_array.t2_region_json_path)[i]
         
         # Retrieve the corresponding MRI and echo times (slices, echoes, height, width)
@@ -198,6 +204,10 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
         if not os.path.isdir(os.path.dirname(refined_seg_path)):
             os.mkdir(os.path.dirname(refined_seg_path))
         np.save(refined_seg_path, seg_pred)
+        
+        if not os.path.isdir(os.path.dirname(t2_projected_path)):
+            os.mkdir(os.path.dirname(t2_projected_path))
+        np.save(t2_projected_path, visualization)
 
         if not os.path.isdir(os.path.dirname(t2_region_json_path)):
             os.mkdir(os.path.dirname(t2_region_json_path))
@@ -210,16 +220,16 @@ def run_inference(expert_pd = None,
                   to_segment_pd = None, 
                   model_weight_file = '/data/kevin_data/checkpoints/checkpoint_weightsOnly_echo1_nomalization_quartile_dropOut0_augTrue_epoch17_trained_on_48_patients_valLoss0.8243473847938046.h5'):
     if expert_pd is not None:
-        print("--------------------------------")
+        print("--------------------------------------------------")
         print("Using provided segmentations to analyze MESE MRIs")
-        print("--------------------------------")
+        print("--------------------------------------------------")
         print()
         process_expert_segmentations(expert_pd)
     
     if to_segment_pd is not None:
-        print("--------------------------------")
+        print("-----------------------------------------------------------------------------------")
         print("Automatically segmenting images and using those segmentations to analyze MESE MRIs")
-        print("--------------------------------")
+        print("-----------------------------------------------------------------------------------")
         print()
         model_segmentation(to_segment_pd, model_weight_file = model_weight_file)
     

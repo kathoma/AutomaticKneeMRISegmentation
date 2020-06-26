@@ -32,7 +32,7 @@ if args.expert_csv:
     print("Processing expert segmentations")
     print("--------------------------------")
     print()
-    expert_file_array = pd.read_csv(expert_csv,
+    expert_file_array = pd.read_csv(args.expert_csv,
                                     header=0,
                                     names = ['img_dir','seg_path','refined_seg_path','t2_img_path','t2_region_json_path'])
 
