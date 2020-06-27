@@ -1,6 +1,7 @@
 import skimage
 import scipy.stats as ss
 import numpy as np
+import matplotlib.pyplot as plt
 
 def threshold_matrix(mat, thr = 1):
     "Makes two - sided thresholding of 2D matrix *mat* based on threshold *thr* (defulat=1)"
@@ -73,8 +74,14 @@ def get_values_std(list_of_diffs, mode = 0):
         sigma2 = np.mean(list_diff_stds)
     return sigma
 
-def threshold_diffmaps(diffmap, mask, sigma_threshold = None, one_sided = 0,
-                       area_threshold = 80, plot = False):
+def threshold_diffmaps(diffmap, 
+                       mask, 
+                       value_threshold,
+                       sigma_multiple = None, 
+                       one_sided = 0,
+                       area_threshold = 80, 
+                       area_percent_threshold = 0.05,
+                       plot = False):
     '''
     Performs clustering in two steps:
       1) Based on values - must be below, above sigma.
@@ -99,14 +106,15 @@ def threshold_diffmaps(diffmap, mask, sigma_threshold = None, one_sided = 0,
     st_diffmap = strip_empty_lines(diffmap + mask)
     st_mask = strip_empty_lines(mask)
     
-    st_diffmap = resize(st_diffmap)
-    mask_resize = resize(st_mask)
-    
-    diffmap = st_diffmap - mask_resize
+    st_diffmap = resize(st_diffmap, target_size = (st_diffmap.shape[0]*100, st_diffmap.shape[1]*100))
+    st_mask = resize(st_mask, target_size = (st_mask.shape[0]*100, st_mask.shape[1]*100))
+    st_mask = (st_mask>.5)*1
+
+    diffmap = st_diffmap - st_mask
     
     
     # Step (1) - Thresholding based on sigma
-    val_threshold = sigma_threshold if sigma_threshold else 1.5 * sigma_in
+    val_threshold = value_threshold if value_threshold else (sigma_multiple * sigma_in)
     if one_sided != 0:
         if one_sided > 0:
             diff_thresh = threshold_matrix_twosided(diffmap, \
@@ -121,8 +129,11 @@ def threshold_diffmaps(diffmap, mask, sigma_threshold = None, one_sided = 0,
     arrlabeled = skimage.measure.label(diff_thresh != 0)
     regions = skimage.measure.regionprops(arrlabeled)
     areas = [region['area'] for region in regions]
+    
+    
     # Step (2) - Thresholding based on area
-    cutoff_size = ss.scoreatpercentile(areas, area_threshold)
+    cutoff_size = np.sum(st_mask)*area_percent_threshold
+#     cutoff_size = ss.scoreatpercentile(areas, area_threshold)
     coords_list = [reg.coords for reg, ar in zip(regions, areas) if ar > cutoff_size]
     mask_sized = make_mask_from_coords_list(np.zeros(diff_thresh.shape), coords_list) 
     diff_thresh_size = diff_thresh * mask_sized
@@ -142,10 +153,10 @@ def threshold_diffmaps(diffmap, mask, sigma_threshold = None, one_sided = 0,
         rg_ = np.max([abs(np.max(diff_thresh_size)), abs(np.min(diff_thresh_size))])
         plt.imshow(diff_thresh_size * mask_sized, cmap='RdBu', vmin=-rg_, vmax=rg_)
         plt.colorbar()
-        plt.imshow(mask, cmap='binary', alpha=0.2)
+        plt.imshow(st_mask, cmap='binary', alpha=0.2)
         plt.title(r"Difference values after whole clustering (80% area cut-off)")
         plt.tight_layout()
-        plt.savefig(plot)
-        plt.close()
-    return diff_thresh_size, mask_resize
+#         plt.savefig(plot)
+        plt.show()
+    return diff_thresh_size, st_mask
 
