@@ -29,7 +29,7 @@ def remove_empty_rows(image):
     cropped = image[rows.min():rows.max()+1, :]
     return cropped
 
-def eroded_and_mask(mata, matb, kernel = np.ones((2,2))):
+def eroded_and_mask(mata, matb, kernel = np.ones((10,10))):
     """
     Creatives mask for matrices *mata* and *matb* ( each 2D numpy.array)
     with positive elements.
@@ -79,8 +79,15 @@ def make_difference(t1_data, t2_data, save = None, plot = False):
         else:
             t2_proj = match_shapes(t1_proj, t2_proj)
             
-    
-    binary_erosion_mask = eroded_and_mask(t1_proj, t2_proj)
+    kernel_size = 10
+    middle_r = (kernel_size/2)-.5
+    middle_c = (kernel_size/2)-.5
+    kernel = np.ones((kernel_size,kernel_size))
+    for i in (range(kernel_size)):
+        for j in (range(kernel_size)):
+            if np.linalg.norm([(i-middle_r),(j-middle_c)]) > 4:
+                kernel[i,j]=0
+    binary_erosion_mask = eroded_and_mask(t1_proj, t2_proj, kernel)
     proj_diff = t2_proj - t1_proj
     diff_masked = proj_diff * binary_erosion_mask
     if save:

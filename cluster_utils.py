@@ -79,8 +79,9 @@ def threshold_diffmaps(diffmap,
                        value_threshold,
                        sigma_multiple = None, 
                        one_sided = 0,
-                       area_threshold = 80, 
-                       area_percent_threshold = 0.05,
+                       area_value_threshold = None,
+                       area_fraction_threshold = None,
+                       area_percentile_threshold = None,#80, 
                        plot = False):
     '''
     Performs clustering in two steps:
@@ -106,8 +107,10 @@ def threshold_diffmaps(diffmap,
     st_diffmap = strip_empty_lines(diffmap + mask)
     st_mask = strip_empty_lines(mask)
     
-    st_diffmap = resize(st_diffmap, target_size = (st_diffmap.shape[0]*100, st_diffmap.shape[1]*100))
-    st_mask = resize(st_mask, target_size = (st_mask.shape[0]*100, st_mask.shape[1]*100))
+    # RECORD THE NUMBER OF ROWS (IE SLICES) THAT CONTAIN CARTILAGE HERE
+    
+#     st_diffmap = resize(st_diffmap, target_size = (st_diffmap.shape[0]*100, st_diffmap.shape[1]*100))
+#     st_mask = resize(st_mask, target_size = (st_mask.shape[0]*100, st_mask.shape[1]*100))
     st_mask = (st_mask>.5)*1
 
     diffmap = st_diffmap - st_mask
@@ -132,8 +135,12 @@ def threshold_diffmaps(diffmap,
     
     
     # Step (2) - Thresholding based on area
-    cutoff_size = np.sum(st_mask)*area_percent_threshold
-#     cutoff_size = ss.scoreatpercentile(areas, area_threshold)
+    if area_value_threshold:
+        cutoff_size = area_value_threshold
+    elif area_fraction_threshold:
+        cutoff_size = np.sum(st_mask)*area_fraction_threshold
+    elif area_percentile_threshold:
+        cutoff_size = ss.scoreatpercentile(areas, area_percentile_threshold)
     coords_list = [reg.coords for reg, ar in zip(regions, areas) if ar > cutoff_size]
     mask_sized = make_mask_from_coords_list(np.zeros(diff_thresh.shape), coords_list) 
     diff_thresh_size = diff_thresh * mask_sized

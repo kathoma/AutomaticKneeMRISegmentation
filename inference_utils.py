@@ -5,11 +5,13 @@ import nibabel as nib
 import pandas as pd
 import json
 import argparse
+import pickle
 from calculate_t2 import *
 from segmentation_refinement import *
 from projection import *
 from utils import whiten_img
 from models import *
+from cluster_utils import strip_empty_lines
 
 
 def get_model(model_weight_file):
@@ -85,6 +87,66 @@ def assemble_4d_mese(img_dir):
     
     return vol, times
 
+def get_metadata(img_dir):
+    '''
+    inputs:
+    img_dir: string specifying the full path to the folder that contains all the dicom files for the image
+    
+    outputs:
+    specified metadata from the first slice's dicom file in the image directory. 
+
+    '''
+    f = np.sort(os.listdir(img_dir))[0]
+    f = os.path.join(img_dir,f)
+    dcm = pydicom.read_file(f)
+    slice_thickness = dcm.SliceThickness
+    slice_spacing = dcm.SpacingBetweenSlices
+    pixel_spacing = dcm.PixelSpacing[0]
+    manufacturer = dcm.Manufacturer
+    
+    return slice_thickness, slice_spacing, pixel_spacing, manufacturer
+    
+    
+def get_physical_dimensions(img_dir, t2_projection, projection_pixel_radius,angular_bin = 5):
+    # Find the physical area covered by the cartilage plate
+    '''
+    inputs:
+    img_dir: string specifying the full path to the folder that contains all the dicom files for the image
+    
+    t2_projection: 2D numpy array containing the 2D projection of the T2 map for the image
+    
+    projection_pixel_radius: the radius (in units of pixels) for the best-fit circle calculated during the 2D projection step
+    
+    outputs:
+    row_distance (float): physical distaince (in units of mm) for the medial-lateral width of the knee joint's cartilage
+    
+    column_distance (float): physical distance (in units of mm) for the anterior-posterior width of the knee joint's cartilage
+    
+    '''
+    ### Find the slice spacing and slice thickness in order to calculate the medial-lateral distance of the cartilage plate
+    slice_thickness, slice_spacing, pixel_spacing, manufacturer = get_metadata(img_dir)
+    num_slices = t2_projection.shape[0]
+    row_distance = (num_slices * slice_thickness) + ((num_slices - 1) * slice_spacing)
+#     temp = np.copy(t2_projection)
+#     for i in np.argwhere(np.isnan(temp)): 
+#             temp[tuple(i)]=0
+
+#     temp = strip_empty_lines(temp)
+#     num_cartilage_slices = temp.shape[0]
+#     row_distance = (num_cartilage_slices * slice_thickness) + ((num_cartilage_slices - 1) * slice_spacing)
+
+    ### Calculate the anterior-posterior distance of the cartilage plate
+    radius = projection_pixel_radius*pixel_spacing
+    column_distance = 2*radius*np.pi
+
+#     full_circumference = 2*radius*np.pi
+#     circle_percent = angular_bin*temp.shape[1]/360
+#     column_distance = full_circumference*circle_percent
+    
+    return row_distance, column_distance
+
+    
+
 def process_expert_segmentations(expert_file_array):
 
     for i in range(len(expert_file_array)):
@@ -124,12 +186,25 @@ def process_expert_segmentations(expert_file_array):
         seg_expert, t2_expert = t2_threshold(seg_expert, t2_expert, t2_low=0, t2_high=100)
 
         # Project the t2 map into 2D
-        visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict = projection(t2_expert, 
-                                                                                           thickness_div = 0.5, 
-                                                                                           values_threshold = 100,
-                                                                                           angular_bin = 5, 
-                                                                                           region_stat = 'mean',
-                                                                                           fig = False)
+        angular_bin = 5
+        visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R = projection(t2_expert, 
+                                                                                               thickness_div = 0.5, 
+                                                                                               values_threshold = 100,
+                                                                                               angular_bin = angular_bin, 
+                                                                                               region_stat = 'mean',
+                                                                                               fig = False)
+        
+        row_distance, column_distance = get_physical_dimensions(img_dir = img_dir, 
+                                                                t2_projection = visualization, 
+                                                                projection_pixel_radius = R, 
+                                                                angular_bin = angular_bin)
+        
+        t2_projection_dict = {}
+        t2_projection_dict['t2_projection'] = visualization
+        t2_projection_dict['row_distance'] = row_distance
+        t2_projection_dict['column_distance'] = column_distance
+        
+        
         # Save the t2 image, segmentation, and projection results
         if not os.path.isdir(os.path.dirname(t2_img_path)):
             os.mkdir(os.path.dirname(t2_img_path))
@@ -141,7 +216,11 @@ def process_expert_segmentations(expert_file_array):
         
         if not os.path.isdir(os.path.dirname(t2_projected_path)):
             os.mkdir(os.path.dirname(t2_projected_path))
-        np.save(t2_projected_path, visualization)
+#         np.save(t2_projected_path, visualization)
+        with open(t2_projected_path+'.pickle', 'wb') as handle:
+            pickle.dump(t2_projection_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
+#         with open(t2_projected_path, 'w') as fp:
+#             json.dump(t2_projection_dict, fp)
 
         if not os.path.isdir(os.path.dirname(t2_region_json_path)):
             os.mkdir(os.path.dirname(t2_region_json_path))
@@ -189,13 +268,26 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
         seg_pred, t2 = optimal_binarize(seg_pred, t2, prob_threshold=0.501, voxel_count_threshold=425)
         
         # Project the t2 map into 2D
-        visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict = projection(t2, 
+        angular_bin = 5
+        visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R = projection(t2, 
                                                                                            thickness_div = 0.5, 
                                                                                            values_threshold = 100,
-                                                                                           angular_bin = 5, 
+                                                                                           angular_bin = angular_bin, 
                                                                                            region_stat = 'mean',
                                                                                            fig = False)
+            
+            
+        row_distance, column_distance = get_physical_dimensions(img_dir = img_dir, 
+                                                                        t2_projection = visualization, 
+                                                                        projection_pixel_radius = R, 
+                                                                        angular_bin = angular_bin)
 
+        t2_projection_dict = {}
+        t2_projection_dict['t2_projection'] = visualization
+        t2_projection_dict['row_distance'] = row_distance
+        t2_projection_dict['column_distance'] = column_distance
+        
+        
         # Save the t2 image, segmentation, and projection results
         if not os.path.isdir(os.path.dirname(t2_img_path)):
             os.mkdir(os.path.dirname(t2_img_path))
@@ -207,13 +299,16 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
         
         if not os.path.isdir(os.path.dirname(t2_projected_path)):
             os.mkdir(os.path.dirname(t2_projected_path))
-        np.save(t2_projected_path, visualization)
+        with open(t2_projected_path+'.pickle', 'wb') as handle:
+            pickle.dump(t2_projection_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         if not os.path.isdir(os.path.dirname(t2_region_json_path)):
             os.mkdir(os.path.dirname(t2_region_json_path))
             
         with open(t2_region_json_path, 'w') as fp:
             json.dump(avg_vals_dict, fp)
+            
+            
             
 
 def run_inference(expert_pd = None, 

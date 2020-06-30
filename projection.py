@@ -269,5 +269,5 @@ def projection(masked_cartilage,
 
 
         
-    return visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict#,standard_error_dict
+    return visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R#,standard_error_dict
     
