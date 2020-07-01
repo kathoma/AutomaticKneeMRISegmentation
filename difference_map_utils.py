@@ -1,5 +1,6 @@
 import scipy.ndimage as ndimage
 import numpy as np
+import matplotlib.pyplot as plt
 
 def match_shapes(mat_a, mat_b):
     """
@@ -38,11 +39,15 @@ def eroded_and_mask(mata, matb, kernel = np.ones((10,10))):
     """
     assert mata.shape == matb.shape, "Shapes don't match"
     assert (mata>=0).all() and (matb>=0).all(), "Works only for positive matrices"
-    ermask_a = ndimage.morphology.binary_erosion(1*(mata > 0),
-                                    structure = kernel).astype(np.int)
-    ermask_b = ndimage.morphology.binary_erosion(1*(matb > 0),
-                                    structure = kernel).astype(np.int)
-    return ermask_a*ermask_b
+#     ermask_a = ndimage.morphology.binary_erosion(1*(mata > 0),
+#                                     structure = kernel).astype(np.int)
+#     ermask_b = ndimage.morphology.binary_erosion(1*(matb > 0),
+#                                     structure = kernel).astype(np.int)
+    
+    overlap = (1*(mata > 0)) * (1*(matb > 0))
+    eroded_mask = ndimage.morphology.binary_erosion(overlap, structure = kernel).astype(np.int)
+    return eroded_mask
+#     return ermask_a*ermask_b
 
 def make_difference(t1_data, t2_data, save = None, plot = False):
     '''
@@ -78,8 +83,9 @@ def make_difference(t1_data, t2_data, save = None, plot = False):
             t1_proj = match_shapes(t2_proj, t1_proj)
         else:
             t2_proj = match_shapes(t1_proj, t2_proj)
-            
-    kernel_size = 10
+    
+    
+    kernel_size = 15
     middle_r = (kernel_size/2)-.5
     middle_c = (kernel_size/2)-.5
     kernel = np.ones((kernel_size,kernel_size))
