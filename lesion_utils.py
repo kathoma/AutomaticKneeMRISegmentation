@@ -2,95 +2,8 @@ import numpy as np
 import pickle
 import matplotlib.pyplot as plt
 from loss_functions import dice_loss_test_volume
-from difference_map_utils import make_difference
+from difference_map_utils import align_projections, make_difference, eroded_and_mask, make_difference_v2
 from cluster_utils import threshold_diffmaps, strip_empty_lines, resize
-
-def align_projections(proj1, proj2, pad_adjust = True, overlap_adjust = False):
-    
-    '''
-    adds rows and columns where necessary in order to make two cartilage projections the same dimensions
-    
-    inputs:
-    proj1 & proj2 (2D numpy arrays): cartilage projections
-    
-    pad_adjust (bool): If True, adds rows and columns where necessary so the two cartilage projections have the same dimensions
-    
-    overlap_adjust (bool): If True, it zeros any non-overlapping cartilage
-    
-    outputs:
-    adjusted projections for both timepoints
-    
-    '''
-    
-    proj1[np.isnan(proj1)]=0
-    proj2[np.isnan(proj2)]=0
-
-    # Pad one image as necessary so that the two time points have same number of rows and columns
-    if pad_adjust:
-        
-        # Throw out empty rows
-        proj1 = proj1[np.sum(proj1, axis = (1))>0]
-        proj2 = proj2[np.sum(proj2, axis = (1))>0]
-        
-        # Throw out empty columns
-        proj1 = proj1[np.sum(proj1, axis = (1))>0]
-        proj2 = proj2[np.sum(proj2, axis = (1))>0]
-    
-        while proj1.shape[0] != proj2.shape[0]:
-            if proj1.shape[0] > proj2.shape[0]:
-                top = np.sum(proj1[0]!=0)
-                bottom = np.sum(proj1[-1]!=0)
-                if top > bottom:
-                    proj2 = np.concatenate([proj2, 
-                                           np.zeros((1,proj2.shape[1]))]) # add to the bottom
-                else:
-                    proj2 = np.concatenate([np.zeros((1,proj2.shape[1])), 
-                                           proj2]) # add to the top
-
-            if proj2.shape[0] > proj1.shape[0]:
-                top = np.sum(proj2[0]!=0)
-                bottom = np.sum(proj2[-1]!=0)
-                if top > bottom:
-                    proj1 = np.concatenate([proj1, 
-                                           np.zeros((1,proj1.shape[1]))]) # add to the bottom
-                else:
-                    proj1 = np.concatenate([np.zeros((1,proj1.shape[1])), 
-                                           proj1]) # add to the top
-                    
-        
-    
-        while proj1.shape[1] != proj2.shape[1]:
-            if proj1.shape[1] > proj2.shape[1]:
-                left = np.sum(proj1[:,0]!=0)
-                right = np.sum(proj1[:,-1]!=0)
-                if left > right:
-                    proj2 = np.concatenate([proj2, 
-                                           np.zeros((proj2.shape[0],1))],
-                                           axis = 1) # add to the right
-                else:
-                    proj2 = np.concatenate([np.zeros((proj2.shape[0],1)), 
-                                           proj2],
-                                           axis = 1) # add to the left
-
-            if proj2.shape[1] > proj1.shape[1]:
-                left = np.sum(proj2[:,0]!=0)
-                right = np.sum(proj2[:,-1]!=0)
-                if left > right:
-                    proj1 = np.concatenate([proj1, 
-                                           np.zeros((proj1.shape[0],1))],
-                                           axis = 1) # add to the right
-                else:
-                    proj1 = np.concatenate([np.zeros((proj1.shape[0],1)), 
-                                           proj1],
-                                           axis = 1) # add to the left
-                
-    if overlap_adjust:            
-        overlap = np.logical_and(proj1!=0, proj2!=0)
-        proj1 = proj1*(overlap*1)
-        proj2 = proj2*(overlap*1)
-    
-    return proj1, proj2
-
 
 
 def make_projection_proportional(projection_dict):
@@ -110,8 +23,6 @@ def make_projection_proportional(projection_dict):
     projection = resize(projection, (np.round(projection_dict['row_distance']), np.round(projection_dict['column_distance'])))
     
     return projection
-
-
 
 
 def calculate_lesion_area(projection1_dict,
@@ -150,7 +61,9 @@ def calculate_lesion_area(projection1_dict,
 
 #         projection1 = np.load(timepoint1[i])
 #         projection2 = np.load(timepoint2[i])
+        
     dif, mask = make_difference(projection2,projection1)
+#     dif, mask = make_difference_v2(projection2, projection1)
 
     dif = strip_empty_lines(dif)
     mask = strip_empty_lines(mask)

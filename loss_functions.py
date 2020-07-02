@@ -83,6 +83,10 @@ def dice_loss_test_volume(y_true, y_pred, thresh = 0.5):
 def jaccard(vol1, vol2):
     return np.sum(np.logical_and(vol1,vol2))/np.sum((np.logical_or(vol1,vol2)))
 
+def coefficient_of_variation(y_true, y_pred):
+    return ((np.mean((y_pred-y_true)**2))**.5) /  np.mean(y_true)    
+
+
 
 def rohan_loss(y_true, y_pred):
 

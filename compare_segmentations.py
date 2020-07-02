@@ -50,7 +50,7 @@ def get_jaccard_indices(list1, list2, results_path=None):
         return jaccard_list
 
 
-def compare_region_means(list1, list2, results_path=None):
+def compare_region_means(list1, list2, results_path=None, correlation_method = 'pearson'):
     '''
     list1 and list2 are lists of json files whose keys are cartilage region names (str) and values are the mean T2 value in that region
     '''
@@ -82,7 +82,10 @@ def compare_region_means(list1, list2, results_path=None):
     correlation_dict={}
     mean_abs_diff_dict = {}
     for r in regions:
-        correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
+        if correlation_method == 'pearson':
+            correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
+        elif correlation_method == 'spearman':
+            correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
         mean_abs_diff_dict[r] = np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r]))
     
     if results_path:
@@ -94,7 +97,7 @@ def compare_region_means(list1, list2, results_path=None):
         return correlation_dict, mean_abs_diff_dict
   
     
-def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None):
+def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, correlation_method = 'pearson'):
     '''    
     All inputs are lists of json files whose keys are cartilage region names (str) and values are the mean T2 value in that region
     
@@ -143,7 +146,10 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None):
     correlation_dict={}
     mean_abs_diff_dict = {}
     for r in regions:
-        correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
+        if correlation_method == 'pearson':
+            correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
+        elif correlation_method == 'spearman':
+            correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
         mean_abs_diff_dict[r] = np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r]))
         
     if results_path:

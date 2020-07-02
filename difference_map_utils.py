@@ -2,6 +2,92 @@ import scipy.ndimage as ndimage
 import numpy as np
 import matplotlib.pyplot as plt
 
+def align_projections(proj1, proj2, pad_adjust = True, overlap_adjust = False):
+    
+    '''
+    adds rows and columns where necessary in order to make two cartilage projections the same dimensions
+    
+    inputs:
+    proj1 & proj2 (2D numpy arrays): cartilage projections
+    
+    pad_adjust (bool): If True, adds rows and columns where necessary so the two cartilage projections have the same dimensions
+    
+    overlap_adjust (bool): If True, it zeros any non-overlapping cartilage
+    
+    outputs:
+    adjusted projections for both timepoints
+    
+    '''
+    
+    proj1[np.isnan(proj1)]=0
+    proj2[np.isnan(proj2)]=0
+
+    # Pad one image as necessary so that the two time points have same number of rows and columns
+    if pad_adjust:
+        
+        # Throw out empty rows
+        proj1 = proj1[np.sum(proj1, axis = (1))>0]
+        proj2 = proj2[np.sum(proj2, axis = (1))>0]
+        
+        # Throw out empty columns
+        proj1 = proj1[np.sum(proj1, axis = (1))>0]
+        proj2 = proj2[np.sum(proj2, axis = (1))>0]
+    
+        while proj1.shape[0] != proj2.shape[0]:
+            if proj1.shape[0] > proj2.shape[0]:
+                top = np.sum(proj1[0]!=0)
+                bottom = np.sum(proj1[-1]!=0)
+                if top > bottom:
+                    proj2 = np.concatenate([proj2, 
+                                           np.zeros((1,proj2.shape[1]))]) # add to the bottom
+                else:
+                    proj2 = np.concatenate([np.zeros((1,proj2.shape[1])), 
+                                           proj2]) # add to the top
+
+            if proj2.shape[0] > proj1.shape[0]:
+                top = np.sum(proj2[0]!=0)
+                bottom = np.sum(proj2[-1]!=0)
+                if top > bottom:
+                    proj1 = np.concatenate([proj1, 
+                                           np.zeros((1,proj1.shape[1]))]) # add to the bottom
+                else:
+                    proj1 = np.concatenate([np.zeros((1,proj1.shape[1])), 
+                                           proj1]) # add to the top
+                    
+        
+    
+        while proj1.shape[1] != proj2.shape[1]:
+            if proj1.shape[1] > proj2.shape[1]:
+                left = np.sum(proj1[:,0]!=0)
+                right = np.sum(proj1[:,-1]!=0)
+                if left > right:
+                    proj2 = np.concatenate([proj2, 
+                                           np.zeros((proj2.shape[0],1))],
+                                           axis = 1) # add to the right
+                else:
+                    proj2 = np.concatenate([np.zeros((proj2.shape[0],1)), 
+                                           proj2],
+                                           axis = 1) # add to the left
+
+            if proj2.shape[1] > proj1.shape[1]:
+                left = np.sum(proj2[:,0]!=0)
+                right = np.sum(proj2[:,-1]!=0)
+                if left > right:
+                    proj1 = np.concatenate([proj1, 
+                                           np.zeros((proj1.shape[0],1))],
+                                           axis = 1) # add to the right
+                else:
+                    proj1 = np.concatenate([np.zeros((proj1.shape[0],1)), 
+                                           proj1],
+                                           axis = 1) # add to the left
+                
+    if overlap_adjust:            
+        overlap = np.logical_and(proj1!=0, proj2!=0)
+        proj1 = proj1*(overlap*1)
+        proj2 = proj2*(overlap*1)
+    
+    return proj1, proj2
+
 def match_shapes(mat_a, mat_b):
     """
     For two matrices where *mat_a* has more rows (first dim) it pads the
@@ -121,3 +207,43 @@ def make_difference(t1_data, t2_data, save = None, plot = False):
             plt.show()
     return diff_masked, binary_erosion_mask
 
+
+def make_difference_v2(projection2, projection1):
+    '''
+    Provides an alternative approach to making a difference map. Instead of attempting to align the two T2 projection maps and then subtracting them (as done above), this function finds the spatially closest pixel in timepoint 1 for each pixel in timepoint 2, and then assigns the T2 delta to the timepoint 2 pixel location. This results in a difference map that is non-zero for each non-zero pixel in timepoint 2.  
+    
+    '''
+    
+    projection1, projection2 = align_projections(projection1,projection2)
+    
+    num_pix = np.sum(projection2!=0)
+    where_projection2 = np.where(projection2)
+    where_projection1 = np.where(projection1)
+
+    diff = np.zeros_like(projection2)
+    for i in range(num_pix):
+        t2_projection2 = projection2[where_projection2[0][i], where_projection2[1][i]]
+
+        distances_r = where_projection1[0] - where_projection2[0][i]
+        distances_c = where_projection1[1] - where_projection2[1][i]
+        distances = np.sqrt(distances_r**2 + distances_c**2)
+#         index = np.argmin(distances)
+#         t2_projection1 = projection1[where_projection1[0][index], where_projection1[1][index]]
+        indices = np.argsort(distances)[0:10]
+        t2_projection1 = np.mean(projection1[where_projection1[0][indices], where_projection1[1][indices]])
+        
+        change = t2_projection2 - t2_projection1
+        diff[where_projection2[0][i], where_projection2[1][i]] = change
+    
+    kernel_size = 30
+    middle_r = (kernel_size/2)-.5
+    middle_c = (kernel_size/2)-.5
+    kernel = np.ones((kernel_size,kernel_size))
+    for i in (range(kernel_size)):
+        for j in (range(kernel_size)):
+            if np.linalg.norm([(i-middle_r),(j-middle_c)]) > 4:
+                kernel[i,j]=0
+                
+    mask = eroded_and_mask(diff!=0,diff!=0, kernel)
+    diff_masked = diff*mask
+    return diff_masked, mask
