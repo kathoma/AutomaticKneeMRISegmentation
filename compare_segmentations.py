@@ -86,7 +86,8 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
             correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
         elif correlation_method == 'spearman':
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
-        mean_abs_diff_dict[r] = np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r]))
+        
+        mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
     
     if results_path:
         with open(os.path.join(results_path,'correlation'), 'w') as fp:
@@ -150,7 +151,8 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
             correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
         elif correlation_method == 'spearman':
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
-        mean_abs_diff_dict[r] = np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r]))
+        
+        mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
         
     if results_path:
         with open(os.path.join(results_path,'correlation'), 'w') as fp:
