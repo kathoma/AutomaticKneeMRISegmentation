@@ -11,7 +11,8 @@ from segmentation_refinement import *
 from projection import *
 from utils import whiten_img
 from models import *
-from loss_functions import dice_loss_test_volume, jaccard
+from loss_functions import dice_loss_test_volume, jaccard, coefficient_of_variation
+
 
 def get_dice_scores(list1, list2, results_path=None):
     '''
@@ -48,6 +49,33 @@ def get_jaccard_indices(list1, list2, results_path=None):
         np.savetxt(results_path, np.array(f1_list), delimiter=",")
     else:
         return jaccard_list
+    
+
+def compare_segmentation_masks(source1_pd, source2_pd, display = True):
+    source1_seg = np.array(source1_pd.refined_seg_path) 
+    source2_seg = np.array(source2_pd.refined_seg_path) 
+
+    # Get Dice Score 
+    dice_scores = get_dice_scores(source1_seg, source2_seg)
+
+    # Get Jaccard Index
+    jaccard_indices = get_jaccard_indices(source1_seg, source2_seg)
+
+    # Display results
+    if display:
+        print(np.round(np.mean(dice_scores),4), "+/-",np.round(np.std(dice_scores),4))
+        plt.hist(dice_scores, bins = 10)
+        plt.title("Dice Scores: Mean = " + str(np.round(np.mean(dice_scores),4)) + " +/- " + str(np.round(np.std(dice_scores),4)))
+        plt.show()
+
+        print(np.round(np.mean(jaccard_indices),4), "+/-",np.round(np.std(jaccard_indices),4))
+        plt.hist(jaccard_indices, bins = 10)
+        plt.title("Jaccard Indices: Mean = " + str(np.round(np.mean(jaccard_indices),4)) + " +/- " + str(np.round(np.std(jaccard_indices),4)))
+        plt.show()
+    return dice_scores, jaccard_indices
+
+
+
 
 
 def compare_region_means(list1, list2, results_path=None, correlation_method = 'pearson'):
@@ -81,6 +109,7 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
      
     correlation_dict={}
     mean_abs_diff_dict = {}
+    cv_dict = {}
     for r in regions:
         if correlation_method == 'pearson':
             correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
@@ -88,14 +117,18 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
         
         mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
+        
+        cv_dict[r] = coefficient_of_variation(aggregate_dict[1][r], aggregate_dict[2][r])
     
     if results_path:
         with open(os.path.join(results_path,'correlation'), 'w') as fp:
                 json.dump(correlation_dict, fp)
         with open(os.path.join(results_path,'mean_abs_diff'), 'w') as fp:
                 json.dump(mean_abs_diff_dict, fp)
+        with open(os.path.join(results_path,'coefficient_of_variation'), 'w') as fp:
+                json.dump(cv_dict, fp)
     else:    
-        return correlation_dict, mean_abs_diff_dict
+        return correlation_dict, mean_abs_diff_dict, cv_dict
   
     
 def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, correlation_method = 'pearson'):
@@ -146,6 +179,7 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
      
     correlation_dict={}
     mean_abs_diff_dict = {}
+    cv_dict = {}
     for r in regions:
         if correlation_method == 'pearson':
             correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
@@ -154,14 +188,18 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
         
         mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
         
+        cv_dict[r] = coefficient_of_variation(aggregate_dict[1][r], aggregate_dict[2][r])
+        
     if results_path:
         with open(os.path.join(results_path,'correlation'), 'w') as fp:
             json.dump(correlation_dict, fp)
         with open(os.path.join(results_path,'mean_abs_diff'), 'w') as fp:
                 json.dump(mean_abs_diff_dict, fp)
+        with open(os.path.join(results_path,'coefficient_of_variation'), 'w') as fp:
+                json.dump(cv_dict, fp)
     
     else:    
-        return correlation_dict, mean_abs_diff_dict        
+        return correlation_dict, mean_abs_diff_dict , cv_dict, aggregate_dict      
     
     
 # parser = argparse.ArgumentParser(description='Compare results derived from two different segmentation methods.')

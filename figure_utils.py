@@ -53,7 +53,7 @@ def plot_mean_val_comparisons(dict1, dict2, name1, name2):
 
 #     autolabel(rects1)
 #     autolabel(rects2)
-    fig.set_size_inches(18.5, 10.5, forward=True)
+    fig.set_size_inches(30, 9, forward=True)
 
     fig.tight_layout()
 
