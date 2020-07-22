@@ -47,17 +47,26 @@ def get_region_value(regiondict, binned_super, binned_deep, angle, medial_latera
     Thresholding data from *binned_super*, *binned_deep* and updating
     *regiondict* dictionary.
     """
+    
     if angle <=-35:
         if slice_num <= medial_lateral_boundary_row:
             regiondict['SLA'].extend(list(binned_super[:,2]))
             regiondict['DLA'].extend(list(binned_deep[:,2]))
             regiondict['LA'].extend(list(binned_super[:,2]))
             regiondict['LA'].extend(list(binned_deep[:,2]))
+            regiondict['SL'].extend(list(binned_super[:,2]))
+            regiondict['DL'].extend(list(binned_deep[:,2]))
+            regiondict['L'].extend(list(binned_super[:,2]))
+            regiondict['L'].extend(list(binned_deep[:,2]))
         else:
-            regiondict['SUA'].extend(list(binned_super[:,2]))
-            regiondict['DUA'].extend(list(binned_deep[:,2]))
-            regiondict['UA'].extend(list(binned_super[:,2]))
-            regiondict['UA'].extend(list(binned_deep[:,2]))
+            regiondict['SMA'].extend(list(binned_super[:,2]))
+            regiondict['DMA'].extend(list(binned_deep[:,2]))
+            regiondict['MA'].extend(list(binned_super[:,2]))
+            regiondict['MA'].extend(list(binned_deep[:,2]))
+            regiondict['SM'].extend(list(binned_super[:,2]))
+            regiondict['DM'].extend(list(binned_deep[:,2]))
+            regiondict['M'].extend(list(binned_super[:,2]))
+            regiondict['M'].extend(list(binned_deep[:,2]))
             
     elif -35 < angle <= 25:
         if slice_num <= total_slices//2:
@@ -65,11 +74,19 @@ def get_region_value(regiondict, binned_super, binned_deep, angle, medial_latera
             regiondict['DLC'].extend(list(binned_deep[:,2]))
             regiondict['LC'].extend(list(binned_super[:,2]))
             regiondict['LC'].extend(list(binned_deep[:,2]))
+            regiondict['SL'].extend(list(binned_super[:,2]))
+            regiondict['DL'].extend(list(binned_deep[:,2]))
+            regiondict['L'].extend(list(binned_super[:,2]))
+            regiondict['L'].extend(list(binned_deep[:,2]))
         else:
-            regiondict['SUC'].extend(list(binned_super[:,2]))
-            regiondict['DUC'].extend(list(binned_deep[:,2]))
-            regiondict['UC'].extend(list(binned_super[:,2]))
-            regiondict['UC'].extend(list(binned_deep[:,2]))
+            regiondict['SMC'].extend(list(binned_super[:,2]))
+            regiondict['DMC'].extend(list(binned_deep[:,2]))
+            regiondict['MC'].extend(list(binned_super[:,2]))
+            regiondict['MC'].extend(list(binned_deep[:,2]))
+            regiondict['SM'].extend(list(binned_super[:,2]))
+            regiondict['DM'].extend(list(binned_deep[:,2]))
+            regiondict['M'].extend(list(binned_super[:,2]))
+            regiondict['M'].extend(list(binned_deep[:,2]))
             
     elif angle > 25:
         if slice_num <= total_slices//2:
@@ -77,11 +94,19 @@ def get_region_value(regiondict, binned_super, binned_deep, angle, medial_latera
             regiondict['DLP'].extend(list(binned_deep[:,2]))
             regiondict['LP'].extend(list(binned_super[:,2]))
             regiondict['LP'].extend(list(binned_deep[:,2]))
+            regiondict['SL'].extend(list(binned_super[:,2]))
+            regiondict['DL'].extend(list(binned_deep[:,2]))
+            regiondict['L'].extend(list(binned_super[:,2]))
+            regiondict['L'].extend(list(binned_deep[:,2]))
         else:
-            regiondict['SUP'].extend(list(binned_super[:,2]))
-            regiondict['DUP'].extend(list(binned_deep[:,2]))
-            regiondict['UP'].extend(list(binned_super[:,2]))
-            regiondict['UP'].extend(list(binned_deep[:,2]))
+            regiondict['SMP'].extend(list(binned_super[:,2]))
+            regiondict['DMP'].extend(list(binned_deep[:,2]))
+            regiondict['MP'].extend(list(binned_super[:,2]))
+            regiondict['MP'].extend(list(binned_deep[:,2]))
+            regiondict['SM'].extend(list(binned_super[:,2]))
+            regiondict['DM'].extend(list(binned_deep[:,2]))
+            regiondict['M'].extend(list(binned_super[:,2]))
+            regiondict['M'].extend(list(binned_deep[:,2]))
             
 def bootstrap_region(t2_list, reps = 1000):
     arr_of_means = np.zeros(reps)
@@ -141,7 +166,7 @@ def projection(masked_cartilage,
     max_rho_map         = np.zeros((nr_slices,int(360/angular_bin)))
     superficial_values  = []
     deep_values         = []
-    regions = ['SLA', 'SLC', 'SLP', 'SUA', 'SUC', 'SUP', 'DLA', 'DLC', 'DLP', 'DUA', 'DUC', 'DUP','LA','LC','LP','UA','UC','UP']
+    regions = ['SLA', 'SLC', 'SLP', 'SMA', 'SMC', 'SMP', 'DLA', 'DLC', 'DLP', 'DMA', 'DMC', 'DMP','LA','LC','LP','MA','MC','MP','SL','DL','SM','DM','L','M']
     regiondict = dict((i, []) for i in regions)
 
     mask_proj1 = masked.max(1)

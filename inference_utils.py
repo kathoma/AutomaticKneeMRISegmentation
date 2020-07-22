@@ -6,12 +6,15 @@ import pandas as pd
 import json
 import argparse
 import pickle
+import time
+
 from calculate_t2 import *
 from segmentation_refinement import *
 from projection import *
 from utils import whiten_img
 from models import *
 from cluster_utils import strip_empty_lines
+
 
 
 def get_model(model_weight_file):
@@ -254,19 +257,24 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
         model = get_model(model_weight_file)
         
         # Estimate segmentation
+        time1 = time.time()
         seg_pred = model.predict(mese_white.reshape(-1,384,384,1), batch_size = 6)
+        time2 = time.time()
         seg_pred = seg_pred.squeeze()
         if not os.path.isdir(os.path.dirname(seg_path)):
             os.mkdir(os.path.dirname(seg_path))
         np.save(seg_path, seg_pred)
         
         # Calculate T2 Map
+        time3 = time.time()
         t2 = fit_t2(mese, t2times, segmentation = seg_pred, n_jobs = 4, show_bad_pixels = False)
 
         # Refine the comparison segmentation by throwing out non-physiologic T2 values
         seg_pred, t2 = t2_threshold(seg_pred, t2, t2_low=0, t2_high=100)
         seg_pred, t2 = optimal_binarize(seg_pred, t2, prob_threshold=0.501, voxel_count_threshold=425)
+        time4 = time.time()
         
+        print("Duration:", time2-time1, time4-time3, (time2-time1)+(time4-time3))
         # Project the t2 map into 2D
         angular_bin = 5
         visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R = projection(t2, 
