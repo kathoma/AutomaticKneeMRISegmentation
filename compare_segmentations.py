@@ -5,7 +5,7 @@ import nibabel as nib
 import pandas as pd
 import json
 import argparse
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import spearmanr, pearsonr, ttest_1samp
 from calculate_t2 import *
 from segmentation_refinement import *
 from projection import *
@@ -75,10 +75,42 @@ def compare_segmentation_masks(source1_pd, source2_pd, display = True):
     return dice_scores, jaccard_indices
 
 
+def plot_bland_altman(array1, array2, title):
+    diff = array2 - array1
+    mean = np.mean([array1, array2], axis=0)
+    plt.scatter(mean,diff)
+    
+    # Best fit line
+#     w = np.linalg.lstsq(np.hstack((mean.reshape(-1,1), np.ones((len(mean),1)))), diff)[0]
+#     xx = np.linspace(*plt.gca().get_xlim()).T
+#     plt.plot(xx, w[0]*xx + w[1], '-b')
+    
+    plt.plot([np.min(mean),np.max(mean)], [np.mean(diff), np.mean(diff)])
+    plt.plot([np.min(mean),np.max(mean)], [np.mean(diff)+(1.96*np.std(diff)), np.mean(diff)+(1.96*np.std(diff))],'--')
+    plt.plot([np.min(mean),np.max(mean)], [np.mean(diff)-(1.96*np.std(diff)), np.mean(diff)-(1.96*np.std(diff))],'--')
+    
+    plt.text(np.min(mean), 
+             np.mean(diff)+.1, 
+             str(np.round(np.mean(diff),2)) + ' (p='+ str(np.round(ttest_1samp(diff,0)[-1],2))+')',
+             verticalalignment = 'bottom')
+    
+    plt.text(np.min(mean), 
+             np.mean(diff)+(1.96*np.std(diff))-.1, 
+             str(np.round(np.mean(diff)+(1.96*np.std(diff)),2)),
+             verticalalignment = 'top')
+    
+    plt.text(np.min(mean), 
+             np.mean(diff)-(1.96*np.std(diff))+.1,
+             str(np.round(np.mean(diff)-(1.96*np.std(diff)),2)),
+             verticalalignment = 'bottom')
+
+    plt.xlabel("T2 Change (ms)")
+    plt.ylabel("T2 Difference (ms)")
+    plt.title(title)
+    plt.show()
 
 
-
-def compare_region_means(list1, list2, results_path=None, correlation_method = 'pearson'):
+def compare_region_means(list1, list2, results_path=None, correlation_method = 'pearson', bland_altman=False):
     '''
     list1 and list2 are lists of json files whose keys are cartilage region names (str) and values are the mean T2 value in that region
     '''
@@ -109,13 +141,18 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
      
     correlation_dict={}
     mean_abs_diff_dict = {}
+    ttest_dict = {}
     cv_dict = {}
     for r in regions:
         if correlation_method == 'pearson':
             correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
         elif correlation_method == 'spearman':
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
-        
+        if bland_altman:
+            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title=r)
+
+        diff = aggregate_dict[1][r] - aggregate_dict[2][r]
+        ttest_dict[r] = ttest_1samp(diff,0)
         mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
         
         cv_dict[r] = coefficient_of_variation(aggregate_dict[1][r], aggregate_dict[2][r])
@@ -128,10 +165,10 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
         with open(os.path.join(results_path,'coefficient_of_variation'), 'w') as fp:
                 json.dump(cv_dict, fp)
     else:    
-        return correlation_dict, mean_abs_diff_dict, cv_dict
+        return correlation_dict, mean_abs_diff_dict, cv_dict, ttest_dict
   
     
-def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, correlation_method = 'pearson'):
+def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, correlation_method = 'pearson', bland_altman=False):
     '''    
     All inputs are lists of json files whose keys are cartilage region names (str) and values are the mean T2 value in that region
     
@@ -180,15 +217,21 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
     correlation_dict={}
     mean_abs_diff_dict = {}
     cv_dict = {}
+    ttest_dict = {}
     for r in regions:
         if correlation_method == 'pearson':
             correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
         elif correlation_method == 'spearman':
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
-        
+        if bland_altman:
+            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title=r)
+            
         mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
         
         cv_dict[r] = coefficient_of_variation(aggregate_dict[1][r], aggregate_dict[2][r])
+        
+        diff = aggregate_dict[1][r] - aggregate_dict[2][r]
+        ttest_dict[r] = ttest_1samp(diff,0)
         
     if results_path:
         with open(os.path.join(results_path,'correlation'), 'w') as fp:
@@ -199,7 +242,7 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
                 json.dump(cv_dict, fp)
     
     else:    
-        return correlation_dict, mean_abs_diff_dict , cv_dict, aggregate_dict      
+        return correlation_dict, mean_abs_diff_dict , cv_dict, ttest_dict, aggregate_dict     
     
     
 # parser = argparse.ArgumentParser(description='Compare results derived from two different segmentation methods.')
