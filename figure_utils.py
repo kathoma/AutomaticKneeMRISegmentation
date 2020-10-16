@@ -2,7 +2,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_mean_val_comparisons(dict1, dict2, name1, name2):
+def plot_mean_val_comparisons(dict1, dict2, name1, name2, error_bar = 'std'):
     '''
     plots a bar graph that compares the mean absolute error of two segmentation sources relative to a gold standard source
     
@@ -31,9 +31,15 @@ def plot_mean_val_comparisons(dict1, dict2, name1, name2):
                           'SLA', 'SLC','SLP','SMA','SMC','SMP']    
     
     means1 = [np.round(i[0],2) for i in values1]
-    error1 = [np.round(i[1],2) for i in values1]
     means2 = [np.round(i[0],2) for i in values2]
-    error2 = [np.round(i[1],2) for i in values2]
+    
+    if error_bar == 'std':
+        error1 = [np.round(i[1],2) for i in values1]
+        error2 = [np.round(i[1],2) for i in values2]
+    elif error_bar == 'ci':
+        error1 = np.array([[i[0]-i[2][0],i[2][1]-i[0]] for i in values1])
+        error1 = error1.T
+        error2 = np.array([[i[0]-i[2][0],i[2][1]-i[0]] for i in values2]).T
 
     x = np.arange(len(labels))  # the label locations
     width = 0.4  # the width of the bars
@@ -43,7 +49,10 @@ def plot_mean_val_comparisons(dict1, dict2, name1, name2):
     rects2 = ax.bar(x + width/2, means2, width, yerr=error2, label=name2)
 
     # Add some text for labels, title and custom x-axis tick labels, etc.
-    ax.set_ylabel('Mean absolute difference (± StD)\n(ms)', size = 30)
+    if error_bar == 'std':
+        ax.set_ylabel('Mean absolute difference (± StD)\n(ms)', size = 30)
+    elif error_bar == 'ci':
+        ax.set_ylabel('Mean absolute difference (± 95% CI)\n(ms)', size = 30)
     ax.set_xlabel('Cartilage region', size = 30)
 
     ax.set_title('Mean absolute difference in average T2 value for each region relative to Reader 1', size = 35)

@@ -11,7 +11,7 @@ from segmentation_refinement import *
 from projection import *
 from utils import whiten_img
 from models import *
-from loss_functions import dice_loss_test_volume, jaccard, coefficient_of_variation
+from loss_functions import dice_loss_test_volume, jaccard, coefficient_of_variation, cohen_d
 
 
 def get_dice_scores(list1, list2, results_path=None):
@@ -75,7 +75,11 @@ def compare_segmentation_masks(source1_pd, source2_pd, display = True):
     return dice_scores, jaccard_indices
 
 
-def plot_bland_altman(array1, array2, title):
+def plot_bland_altman(array1, array2, title, save = False):
+    xlow = -10
+    xhigh = 13
+    ylow = -10
+    yhigh = 10
     diff = array2 - array1
     mean = np.mean([array1, array2], axis=0)
     plt.scatter(mean,diff)
@@ -85,30 +89,79 @@ def plot_bland_altman(array1, array2, title):
 #     xx = np.linspace(*plt.gca().get_xlim()).T
 #     plt.plot(xx, w[0]*xx + w[1], '-b')
     
-    plt.plot([np.min(mean),np.max(mean)], [np.mean(diff), np.mean(diff)])
-    plt.plot([np.min(mean),np.max(mean)], [np.mean(diff)+(1.96*np.std(diff)), np.mean(diff)+(1.96*np.std(diff))],'--')
-    plt.plot([np.min(mean),np.max(mean)], [np.mean(diff)-(1.96*np.std(diff)), np.mean(diff)-(1.96*np.std(diff))],'--')
+#     plt.plot([np.min(mean),np.max(mean)], [np.mean(diff), np.mean(diff)])
+#     plt.plot([np.min(mean),np.max(mean)], [np.mean(diff)+(1.96*np.std(diff)), np.mean(diff)+(1.96*np.std(diff))],'--')
+#     plt.plot([np.min(mean),np.max(mean)], [np.mean(diff)-(1.96*np.std(diff)), np.mean(diff)-(1.96*np.std(diff))],'--')
+
+#     plt.text(np.min(mean), 
+#              np.mean(diff)+.1, 
+#              str(np.round(np.mean(diff),2)) + ' (p='+ str(np.round(ttest_1samp(diff,0)[-1],2))+')',
+#              verticalalignment = 'bottom')
     
-    plt.text(np.min(mean), 
+#     plt.text(np.min(mean), 
+#              np.mean(diff)+(1.96*np.std(diff))-.1, 
+#              str(np.round(np.mean(diff)+(1.96*np.std(diff)),2)),
+#              verticalalignment = 'top')
+    
+#     plt.text(np.min(mean), 
+#              np.mean(diff)-(1.96*np.std(diff))+.1,
+#              str(np.round(np.mean(diff)-(1.96*np.std(diff)),2)),
+#              verticalalignment = 'bottom')
+    
+    plt.text(xlow+(.7*(xhigh-xlow)), 
              np.mean(diff)+.1, 
              str(np.round(np.mean(diff),2)) + ' (p='+ str(np.round(ttest_1samp(diff,0)[-1],2))+')',
-             verticalalignment = 'bottom')
+             verticalalignment = 'bottom',
+             fontsize = 13)
     
-    plt.text(np.min(mean), 
-             np.mean(diff)+(1.96*np.std(diff))-.1, 
+    plt.text(xlow+(.7*(xhigh-xlow)), 
+             np.mean(diff)+(1.96*np.std(diff))+.1, 
              str(np.round(np.mean(diff)+(1.96*np.std(diff)),2)),
-             verticalalignment = 'top')
+             verticalalignment = 'bottom',
+             fontsize = 13)
     
-    plt.text(np.min(mean), 
-             np.mean(diff)-(1.96*np.std(diff))+.1,
+    plt.text(xlow+(.7*(xhigh-xlow)), 
+             np.mean(diff)-(1.96*np.std(diff))-.1,
              str(np.round(np.mean(diff)-(1.96*np.std(diff)),2)),
-             verticalalignment = 'bottom')
+             verticalalignment = 'top',
+             fontsize = 13)
 
-    plt.xlabel("T2 Change (ms)")
-    plt.ylabel("T2 Difference (ms)")
-    plt.title(title)
+    plt.plot([xlow,xhigh], [np.mean(diff), np.mean(diff)])
+    plt.plot([xlow,xhigh], [np.mean(diff)+(1.96*np.std(diff)), np.mean(diff)+(1.96*np.std(diff))],'--')
+    plt.plot([xlow,xhigh], [np.mean(diff)-(1.96*np.std(diff)), np.mean(diff)-(1.96*np.std(diff))],'--')
+    
+
+
+    plt.xlabel("Four-year Change in T2 (ms)",fontsize = 13)
+    plt.ylabel("T2 Difference (ms)",fontsize = 13)
+    plt.title(title,fontsize = 15)
+    plt.xlim([xlow,xhigh])
+    plt.ylim([ylow,yhigh])
+    
+    if save:
+        plt.savefig('./BlandAltmanFigs/' +title + '.png', dpi=150, bbox_inches='tight')
+
+    
     plt.show()
+    
 
+def mean_bootstrap_ci(arr, ci = 95, num_iterations = 1000):
+    '''
+    95% confidence interval calculated via bootstrap
+    '''
+    num = len(arr)
+    mean_list = []
+    for i in range(num_iterations):
+        mu = np.mean(np.random.choice(arr, size=num, replace=True))
+        mean_list.append(mu)
+        
+    low_percentile = (100-ci)/2
+    high_percentile = 100 - low_percentile
+    low = np.percentile(mean_list, low_percentile)
+    high = np.percentile(mean_list, high_percentile)
+    return (low, high)
+     
+    
 
 def compare_region_means(list1, list2, results_path=None, correlation_method = 'pearson', bland_altman=False):
     '''
@@ -143,19 +196,23 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
     mean_abs_diff_dict = {}
     ttest_dict = {}
     cv_dict = {}
+    cohen_d_dict = {}
     for r in regions:
         if correlation_method == 'pearson':
             correlation_dict[r] = pearsonr(aggregate_dict[1][r],aggregate_dict[2][r])
         elif correlation_method == 'spearman':
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
         if bland_altman:
-            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title=r)
+            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title="Bland Altman Plot:\n T2 value estimates in " + r + " region", save = False)
 
         diff = aggregate_dict[1][r] - aggregate_dict[2][r]
         ttest_dict[r] = ttest_1samp(diff,0)
-        mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
+        mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),
+                                 np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),
+                                 mean_bootstrap_ci(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
         
         cv_dict[r] = coefficient_of_variation(aggregate_dict[1][r], aggregate_dict[2][r])
+        cohen_d_dict[r] = cohen_d(aggregate_dict[1][r], aggregate_dict[2][r])
     
     if results_path:
         with open(os.path.join(results_path,'correlation'), 'w') as fp:
@@ -164,8 +221,10 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
                 json.dump(mean_abs_diff_dict, fp)
         with open(os.path.join(results_path,'coefficient_of_variation'), 'w') as fp:
                 json.dump(cv_dict, fp)
+        with open(os.path.join(results_path,'cohen_d'), 'w') as fp:
+                json.dump(cohen_d_dict, fp)
     else:    
-        return correlation_dict, mean_abs_diff_dict, cv_dict, ttest_dict
+        return correlation_dict, mean_abs_diff_dict, cv_dict, ttest_dict, cohen_d_dict
   
     
 def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, correlation_method = 'pearson', bland_altman=False):
@@ -217,6 +276,7 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
     correlation_dict={}
     mean_abs_diff_dict = {}
     cv_dict = {}
+    cohen_d_dict = {}
     ttest_dict = {}
     for r in regions:
         if correlation_method == 'pearson':
@@ -224,11 +284,12 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
         elif correlation_method == 'spearman':
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
         if bland_altman:
-            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title=r)
+            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title="Bland Altman Plot:\n T2 change estimates in " + r + " region", save = False)
             
         mean_abs_diff_dict[r] = (np.mean(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])),np.std(np.abs(aggregate_dict[1][r] - aggregate_dict[2][r])))
         
         cv_dict[r] = coefficient_of_variation(aggregate_dict[1][r], aggregate_dict[2][r])
+        cohen_d_dict[r] = cohen_d(aggregate_dict[1][r], aggregate_dict[2][r])
         
         diff = aggregate_dict[1][r] - aggregate_dict[2][r]
         ttest_dict[r] = ttest_1samp(diff,0)
@@ -240,9 +301,11 @@ def compare_region_changes(list1a, list1b, list2a, list2b, results_path=None, co
                 json.dump(mean_abs_diff_dict, fp)
         with open(os.path.join(results_path,'coefficient_of_variation'), 'w') as fp:
                 json.dump(cv_dict, fp)
+        with open(os.path.join(results_path,'cohen_d'), 'w') as fp:
+                json.dump(cohen_d_dict, fp)
     
     else:    
-        return correlation_dict, mean_abs_diff_dict , cv_dict, ttest_dict, aggregate_dict     
+        return correlation_dict, mean_abs_diff_dict , cv_dict, ttest_dict, aggregate_dict, cohen_d_dict   
     
     
 # parser = argparse.ArgumentParser(description='Compare results derived from two different segmentation methods.')

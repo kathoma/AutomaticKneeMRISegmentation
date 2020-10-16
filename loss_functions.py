@@ -86,6 +86,11 @@ def jaccard(vol1, vol2):
 def coefficient_of_variation(y_true, y_pred):
     return ((np.mean((y_pred-y_true)**2))**.5) /  np.mean(np.abs(y_true))    
 
+def cohen_d(y_true,y_pred):
+    nTrue = len(y_true)
+    nPred = len(y_pred)
+    dof = nTrue + nPred - 2
+    return (np.mean(y_pred) - np.mean(y_true)) / np.sqrt(((nTrue-1)*np.std(y_true, ddof=1) ** 2 + (nPred-1)*np.std(y_pred, ddof=1) ** 2) / dof)
 
 
 def rohan_loss(y_true, y_pred):
