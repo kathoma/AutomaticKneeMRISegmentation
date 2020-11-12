@@ -76,10 +76,10 @@ def compare_segmentation_masks(source1_pd, source2_pd, display = True):
 
 
 def plot_bland_altman(array1, array2, title, save = False):
-    xlow = -10
-    xhigh = 13
-    ylow = -10
-    yhigh = 10
+    xlow = 35
+    xhigh = 80
+    ylow = -4
+    yhigh = 4
     diff = array2 - array1
     mean = np.mean([array1, array2], axis=0)
     plt.scatter(mean,diff)
@@ -109,7 +109,7 @@ def plot_bland_altman(array1, array2, title, save = False):
 #              verticalalignment = 'bottom')
     
     plt.text(xlow+(.7*(xhigh-xlow)), 
-             np.mean(diff)+.1, 
+             np.mean(diff) +.1, 
              str(np.round(np.mean(diff),2)) + ' (p='+ str(np.round(ttest_1samp(diff,0)[-1],2))+')',
              verticalalignment = 'bottom',
              fontsize = 13)
@@ -132,7 +132,7 @@ def plot_bland_altman(array1, array2, title, save = False):
     
 
 
-    plt.xlabel("Four-year Change in T2 (ms)",fontsize = 13)
+    plt.xlabel("Mean T2 Value (ms)",fontsize = 13)
     plt.ylabel("T2 Difference (ms)",fontsize = 13)
     plt.title(title,fontsize = 15)
     plt.xlim([xlow,xhigh])
@@ -203,7 +203,7 @@ def compare_region_means(list1, list2, results_path=None, correlation_method = '
         elif correlation_method == 'spearman':
             correlation_dict[r] = spearmanr(aggregate_dict[1][r],aggregate_dict[2][r])
         if bland_altman:
-            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title="Bland Altman Plot:\n T2 value estimates in " + r + " region", save = False)
+            plot_bland_altman(aggregate_dict[1][r], aggregate_dict[2][r], title="Bland Altman Plot:\n T2 value estimates in " + r + " region", save = True)
 
         diff = aggregate_dict[1][r] - aggregate_dict[2][r]
         ttest_dict[r] = ttest_1samp(diff,0)
