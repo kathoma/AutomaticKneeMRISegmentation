@@ -1,7 +1,7 @@
 # AutomaticKneeMRISegmentation
 
-This repository provides code for the following manuscript (currently under review):
-Open source software for automatic subregional assessment of knee cartilage degradation using quantitative T2 relaxometry and deep learning
+This repository provides code for the following manuscript (currently under review):\n
+"Open source software for automatic subregional assessment of knee cartilage degradation using quantitative T2 relaxometry and deep learning"
 
 This software provides the following automated functionality for multi-echo spin echo T2-weighted knee MRIs:
 - Segmentation of femoral cartilage
