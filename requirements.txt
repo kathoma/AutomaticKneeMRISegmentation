@@ -90,7 +90,7 @@ qtconsole @ file:///tmp/build/80754af9/qtconsole_1612458529756/work
 QtPy==1.9.0
 requests==2.25.1
 requests-oauthlib==1.3.0
-rsa==4.7.2
+rsa==4.1
 scikit-image==0.17.2
 scikit-learn @ file:///opt/concourse/worker/volumes/live/1a0db4b9-9856-4ede-5f7a-7e4879348c50/volume/scikit-learn_1614446668476/work
 scipy==1.4.1
