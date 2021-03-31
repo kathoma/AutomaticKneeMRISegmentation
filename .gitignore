@@ -1,7 +1,5 @@
 # model weights
 model_weights/
-model_weights_quartileNormalization_echoAug.h5
-
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
