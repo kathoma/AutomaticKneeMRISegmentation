@@ -321,7 +321,8 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
 
 def run_inference(expert_pd = None, 
                   to_segment_pd = None, 
-                  model_weight_file = '/data/kevin_data/checkpoints/checkpoint_weightsOnly_echo1_nomalization_quartile_dropOut0_augTrue_epoch17_trained_on_48_patients_valLoss0.8243473847938046.h5'):
+                  model_weight_file = './model_weights_quartileNormalization_echoAug.h5'):
+#'/data/kevin_data/checkpoints/checkpoint_weightsOnly_echo1_nomalization_quartile_dropOut0_augTrue_epoch17_trained_on_48_patients_valLoss0.8243473847938046.h5'):
     if expert_pd is not None:
         print("--------------------------------------------------")
         print("Using provided segmentations to analyze MESE MRIs")
