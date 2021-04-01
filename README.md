@@ -22,9 +22,15 @@ Enter into the directory you just downloaded:
 ```
 cd AutomaticKneeMRISegmentation
 ```
+Make a directory for the model weights:
+```
+mkdir model_weights
+cd model_weights
+```
 Download the weights for the trained model:
 ```
 wget https://storage.googleapis.com/automatic_knee_mri_segmentation/model_weights_quartileNormalization_echoAug.h5
+cd ..
 ```
 Install dependencies:
 [detailed version information coming soon]
