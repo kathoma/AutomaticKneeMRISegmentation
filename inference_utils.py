@@ -274,7 +274,8 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
         seg_pred, t2 = optimal_binarize(seg_pred, t2, prob_threshold=0.501, voxel_count_threshold=425)
         time4 = time.time()
         
-        print("Duration:", time2-time1, time4-time3, (time2-time1)+(time4-time3))
+        print("Duration of segmentation/T2 Map Calculation/Total:", time2-time1, time4-time3, (time2-time1)+(time4-time3))
+        
         # Project the t2 map into 2D
         angular_bin = 5
         visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R = projection(t2, 
@@ -321,7 +322,7 @@ def model_segmentation(file_array, model_weight_file, normalization = 'quartile'
 
 def run_inference(expert_pd = None, 
                   to_segment_pd = None, 
-                  model_weight_file = './model_weights_quartileNormalization_echoAug.h5'):
+                  model_weight_file = '.model_weights/model_weights_quartileNormalization_echoAug.h5'):
 #'/data/kevin_data/checkpoints/checkpoint_weightsOnly_echo1_nomalization_quartile_dropOut0_augTrue_epoch17_trained_on_48_patients_valLoss0.8243473847938046.h5'):
     if expert_pd is not None:
         print("--------------------------------------------------")
