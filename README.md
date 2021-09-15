@@ -20,7 +20,7 @@ Requires CUDA Version 9.0.176. Tested with CUDA 9.0 and cudnn 7.3.0 in Ubuntu 18
 # Instructions for getting started
 Follow these instructions for installing the appropriate version of CUDA and cudnn: https://github.com/akirademoss/cuda-9.0-installation-on-ubuntu-18.04
 
-# Download software for creating a virtual environment, then create a new virtual environment called kneeseg and activate it:
+Download software for creating a virtual environment, then create a new virtual environment called kneeseg and activate it:
 ```
 pip install virtualenv
 virtualenv -p /usr/bin/python3 kneeseg
