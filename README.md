@@ -2,7 +2,7 @@
 
 This repository provides code for the following manuscript:
 "Open source software for automatic subregional assessment of knee cartilage degradation using quantitative T2 relaxometry and deep learning"
-Link to paper: https://journals.sagepub.com/doi/abs/10.1177/19476035211042406?journalCode=cara
+\nLink to paper: https://journals.sagepub.com/doi/abs/10.1177/19476035211042406?journalCode=cara
 
 This software provides the following automated functionality for multi-echo spin echo T2-weighted knee MRIs:
 - Segmentation of femoral cartilage
