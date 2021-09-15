@@ -2,7 +2,8 @@
 
 This repository provides code for the following manuscript:
 "Open source software for automatic subregional assessment of knee cartilage degradation using quantitative T2 relaxometry and deep learning"
-\nLink to paper: https://journals.sagepub.com/doi/abs/10.1177/19476035211042406?journalCode=cara
+
+Link to paper: https://journals.sagepub.com/doi/abs/10.1177/19476035211042406?journalCode=cara
 
 This software provides the following automated functionality for multi-echo spin echo T2-weighted knee MRIs:
 - Segmentation of femoral cartilage
@@ -14,8 +15,7 @@ This software provides the following automated functionality for multi-echo spin
 
 FullPipeline.ipynb walks through an example of how to use the full pipeline to analyze individual images, calculate changes in a patient over time, and compare results for segmentations from different readers. 
 
-Requires CUDA Version 9.0.176
-Tested with CUDA 9.0 and cudnn 7.3.0 in ubuntu 18.04 
+Requires CUDA Version 9.0.176. Tested with CUDA 9.0 and cudnn 7.3.0 in Ubuntu 18.04.
 
 # Instructions for getting started
 Follow these instructions for installing the appropriate version of CUDA and cudnn: https://github.com/akirademoss/cuda-9.0-installation-on-ubuntu-18.04
