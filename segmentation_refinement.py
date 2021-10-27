@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 #########################################################
 # Refining Initial Segmentations and T2 maps
@@ -16,7 +17,7 @@ def t2_threshold(seg_initial, t2_initial, t2_low=0, t2_high=100):
     t2[np.isnan(t2)]=0
     t2[t2 > t2_high] = 0
     t2[t2 < t2_low] = 0
-    
+
     seg = seg_initial * (1*(t2>0))
     
     return seg, t2

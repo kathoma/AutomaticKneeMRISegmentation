@@ -67,8 +67,8 @@ def fit_t2(t2imgs, t2times, segmentation = None, n_jobs = 4, show_bad_pixels = T
         if len(cartilage_indices_r)> 0:
             for i in np.arange(len(cartilage_indices_r)):
                 ir = cartilage_indices_r[i]
-                ic = cartilage_indices_c[i]
-                               
+                ic = cartilage_indices_c[i]                
+                
                 if all(scan[:,ir,ic] == scan[0,ir,ic]): # if constant value, decay is 0 
                     continue
                     

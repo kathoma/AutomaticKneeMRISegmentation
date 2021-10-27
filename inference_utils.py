@@ -14,7 +14,7 @@ from projection import *
 from utils import whiten_img
 from models import *
 from cluster_utils import strip_empty_lines
-
+import glob
 
 
 def get_model(model_weight_file):
@@ -49,8 +49,8 @@ def assemble_4d_mese(img_dir):
         dict specifying the echo times for each slice. 
             keys are ints specifying slice index. 
             vals are lists of floats specifying echo times 
-    
     '''
+    
     file_list = np.sort(os.listdir(img_dir))
     instance_arr = np.empty((len(file_list),2))
     
@@ -64,6 +64,10 @@ def assemble_4d_mese(img_dir):
         
         instance_arr[i,0] = dcm.InstanceNumber
         instance_arr[i,1] = dcm.EchoNumbers
+    
+    print("instance_arr:")
+    print(instance_arr)
+    print()
     
     num_echoes = int(len(np.unique(instance_arr[:,1])))
     num_slices = int(len(instance_arr)/num_echoes)
@@ -86,9 +90,76 @@ def assemble_4d_mese(img_dir):
         echo_idx = np.where(int(dcm.EchoNumbers)==np.unique(instance_arr[:,1]))[0][0]
         
         vol[int(slice_idx), echo_idx,:,:] = dcm.pixel_array
-        times[int(slice_idx)][echo_idx] = float(dcm.AcquisitionTime)
+        if dcm.AcquisitionTime is not None:
+            times[int(slice_idx)][echo_idx] = float(dcm.AcquisitionTime)
+        elif dcm.EchoTime is not None:
+            times[int(slice_idx)][echo_idx] = float(dcm.EchoTime)
+            
+    return vol, times
+
+def assemble_4d_mese_v2(img_dir):
+    '''
+    assembles a 4D multi echo spin echo
+    
+    inputs:
+        img_dir (str): path to a directory that contains all the echoes for all the slices for one MRI volume
+    
+    outputs:
+        4D MESE image as a np array of shape (slices, echoes, height, width)
+
+        dict specifying the echo times for each slice. 
+            keys are ints specifying slice index. 
+            vals are lists of floats specifying echo times 
+    '''
+
+    sl_list = []
+    file_list = []
+    slice_location_list = []
+    echo_num_list = []
+
+    for f in glob.glob(os.path.join(img_dir,'*')):
+        try:               
+            dcm = pydicom.read_file(f)
+            slice_location_list.append(dcm.SliceLocation)
+            echo_num_list.append(dcm.EchoNumbers)
+            file_list.append(f)
+        except:
+            pass
+
+    slice_location_list = np.array(slice_location_list)
+    echo_num_list = np.array(echo_num_list)
+    file_list = np.array(file_list)
+
+    slice_locations = np.sort(np.unique(slice_location_list))
+    num_slices = int(len(slice_locations))
+    echo_nums = np.sort(np.unique(echo_num_list))
+    num_echoes = int(len(echo_nums))
+
+    height = dcm.pixel_array.shape[0]
+    width = dcm.pixel_array.shape[1]
+    vol = np.empty((int(num_slices), int(num_echoes), height, width))
+    times = {}
+    for i in range(num_slices):
+        times[i]=np.array([None]*num_echoes)
+
+    for i,file in enumerate(file_list):
+        try:
+            dcm = pydicom.read_file(file)
+
+        except:
+            pass
+
+        slice_idx = np.where(float(dcm.SliceLocation)==slice_locations)[0][0]
+        echo_idx = np.where(int(dcm.EchoNumbers)==echo_nums)[0][0]
+
+        vol[int(slice_idx), echo_idx,:,:] = dcm.pixel_array
+        if dcm.EchoTime is not None:
+            times[int(slice_idx)][echo_idx] = float(dcm.EchoTime)/1000
+        elif dcm.AcquisitionTime is not None:
+            times[int(slice_idx)][echo_idx] = float(dcm.AcquisitionTime)
     
     return vol, times
+
 
 def get_metadata(img_dir):
     '''
@@ -129,7 +200,7 @@ def get_physical_dimensions(img_dir, t2_projection, projection_pixel_radius,angu
     ### Find the slice spacing and slice thickness in order to calculate the medial-lateral distance of the cartilage plate
     slice_thickness, slice_spacing, pixel_spacing, manufacturer = get_metadata(img_dir)
     num_slices = t2_projection.shape[0]
-    row_distance = (num_slices * slice_thickness) + ((num_slices - 1) * slice_spacing)
+    row_distance =  ((num_slices - 1) * slice_spacing) + slice_thickness
 #     temp = np.copy(t2_projection)
 #     for i in np.argwhere(np.isnan(temp)): 
 #             temp[tuple(i)]=0

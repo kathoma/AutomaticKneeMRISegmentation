@@ -224,7 +224,7 @@ def make_echo_dict(data_dict, normalization, echo_nums = [0,1,2,3,4,5,6]): # ech
 def whiten_img(img, normalization):
         img = np.copy(img)
         img_array_reshape = img.reshape((img.shape[0],img.shape[1], -1)) 
-        img[img>5000] = 0 # Get rid of outlier background pixels seen in top left corner of some images @ pixel [0,10]
+#         img[img>5000] = 0 # Get rid of outlier background pixels seen in top left corner of some images @ pixel [0,10]
         
         if normalization == 'mean_min_max':
             img_array_centered = img_array_reshape - np.mean(img_array_reshape)
