@@ -34,6 +34,24 @@ Enter into the directory you just downloaded:
 ```
 cd AutomaticKneeMRISegmentation
 ```
+## From here there are two options: Run the analysis in a docker container, or set up an environment:
+
+### Option 1: Docker Container (easy way to have the model analyze your images)
+Install [docker](https://www.docker.com/) or [nvidia-docker](https://github.com/NVIDIA/nvidia-docker)
+
+Put your MRIs into /input/ subdirectory. Each MRI should be a zipped directory. Each zipped directory should only contain the slices/echo-times of the image volume.
+
+Build the docker:
+```
+sudo docker build -t kneeseg .
+```
+Run the docker:
+```
+sudo bash run.sh
+```
+When the analysis is done, the output will be in the /output/ subdirectory
+
+### Option 2: Set up an environment
 Install the necessary dependencies in your new virtual environment:
 ```
 pip install -r requirements_python3.txt
