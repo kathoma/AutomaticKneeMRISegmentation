@@ -9,7 +9,7 @@ chardet==3.0.4
 cloudpickle==1.2.2
 cycler==0.10.0
 cytoolz==0.10.1
-dask==2.9.1
+dask==2021.10.0
 decorator==4.4.1
 defusedxml==0.6.0
 entrypoints==0.3
