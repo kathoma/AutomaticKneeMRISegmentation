@@ -20,12 +20,6 @@ Requires CUDA Version 9.0.176. Tested with CUDA 9.0 and cudnn 7.3.0 in Ubuntu 18
 # Instructions for getting started
 Follow these instructions for installing the appropriate version of CUDA and cudnn: https://github.com/akirademoss/cuda-9.0-installation-on-ubuntu-18.04
 
-Download software for creating a virtual environment, then create a new virtual environment called kneeseg and activate it:
-```
-pip install virtualenv
-virtualenv -p /usr/bin/python3 kneeseg
-source kneeseg/bin/activate
-```
 Download this repository onto your computer:
 ```
 git clone https://github.com/kathoma/AutomaticKneeMRISegmentation.git
@@ -34,7 +28,7 @@ Enter into the directory you just downloaded:
 ```
 cd AutomaticKneeMRISegmentation
 ```
-## From here there are two options: Run the analysis in a docker container, or set up an environment:
+### From here there are two options: Run the analysis in a docker container, or set up an environment:
 
 ### Option 1: Docker Container (easy way to have the model analyze your images)
 Install [docker](https://www.docker.com/) or [nvidia-docker](https://github.com/NVIDIA/nvidia-docker)
@@ -51,7 +45,13 @@ sudo bash run.sh
 ```
 When the analysis is done, the output will be in the /output/ subdirectory
 
-### Option 2: Set up an environment
+### Option 2: Set up an environment (if you want to do more of your own development)
+Download software for creating a virtual environment, then create a new virtual environment called kneeseg and activate it:
+```
+pip install virtualenv
+virtualenv -p /usr/bin/python3 kneeseg
+source kneeseg/bin/activate
+```
 Install the necessary dependencies in your new virtual environment:
 ```
 pip install -r requirements_python3.txt
