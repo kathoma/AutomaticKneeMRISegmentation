@@ -66,5 +66,7 @@ Download the weights for the trained model:
 wget https://storage.googleapis.com/automatic_knee_mri_segmentation/model_weights_quartileNormalization_echoAug.h5
 cd ..
 ```
-Follow the steps in FullPipeline.ipynb to use the model. 
+See DemoAnalysis.ipynb for an example of how to use the main features of the analysis pipeline. 
+
+Also see the steps in FullPipeline.ipynb for additional examples of how to (1) track longitudinal changes using two imaging timepoints from the same patient and (2) compare the agreement between segmentations of several readers. 
 
