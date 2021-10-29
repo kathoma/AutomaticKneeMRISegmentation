@@ -92,13 +92,15 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
     # Create a MESE numpy array
     mese, times = assemble_4d_mese_v2(dicom_sub_dir)
     
-    # If the slices are not 384x384, resize them
+    # If the slices are not 384x384, resize them (the model was trained on 384x384 images from OAI)
+    original_shape = None
     if ((mese.shape[-1] != 384) or (mese.shape[-1] != 384)):
+        original_shape = mese.shape
         mese_resized = np.zeros((mese.shape[0], mese.shape[1], 384,384))
         for s in range(mese.shape[0]):
             for echo in range(mese.shape[1]):
                 mese_resized[s,echo,:,:] = resize(mese[s,echo,:,:], (384, 384),anti_aliasing=True)
-        mese = mese_resized
+        mese = mese_resized  
     
     # Whiten the echo of each slice that is closest to 20ms 
     mese_white = []
@@ -120,11 +122,12 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
     t2 = fit_t2(mese, times, segmentation = seg_pred, n_jobs = 4, show_bad_pixels = False)
 
     # Refine the comparison segmentation by throwing out non-physiologic T2 values
-    seg_pred, t2 = t2_threshold(seg_pred, t2, t2_low=0, t2_high=100)
-    seg_pred, t2 = optimal_binarize(seg_pred, t2, prob_threshold=0.501, voxel_count_threshold=425)
+    seg_pred_refined, t2_refined = t2_threshold(seg_pred, t2, t2_low=0, t2_high=100)
+    seg_pred_refined, t2_refined = optimal_binarize(seg_pred_refined, t2_refined, prob_threshold=0.501,voxel_count_threshold=425)
+    
         
     angular_bin = 5
-    visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R = projection(t2, 
+    visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R = projection(t2_refined, 
                                                                                        thickness_div = 0.5, 
                                                                                        values_threshold = 100,
                                                                                        angular_bin = angular_bin, 
@@ -136,17 +139,31 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
                                                             projection_pixel_radius = R, 
                                                             angular_bin = angular_bin)
     
-    t2_projection_dict = {}
-    t2_projection_dict['t2_projection'] = visualization
-    t2_projection_dict['thickness_map'] = thickness_map
-    t2_projection_dict['row_distance'] = row_distance
-    t2_projection_dict['column_distance'] = column_distance
+    # Resize the output to the size of the original input image
+    if original_shape is not None:
+        seg_pred_resized = np.zeros((original_shape[0], original_shape[2],original_shape[3]))
+        t2_resized = np.zeros((original_shape[0], original_shape[2],original_shape[3]))
+        seg_pred_refined_resized = np.zeros((original_shape[0], original_shape[2],original_shape[3]))
+        t2_refined_resized = np.zeros((original_shape[0], original_shape[2],original_shape[3]))
+        for s in range(seg_pred.shape[0]):
+            seg_pred_resized[s,:,:] = resize(seg_pred[s,:,:](original_shape[2], original_shape[3]), anti_aliasing=True, preserve_range=True)
+            t2_resized[s,:,:] = resize(t2[s,:,:], (original_shape[2],original_shape[3]),anti_aliasing=True,preserve_range=True)
+            seg_pred_refined_resized[s,:,:] = resize(seg_pred_refined[s,:,:], (original_shape[2], original_shape[3]), anti_aliasing=True, preserve_range=True)
+            t2_refined_resized[s,:,:] = resize(t2_refined[s,:,:], (original_shape[2], original_shape[3]), anti_aliasing=True, preserve_range=True)
+
+        seg_pred = 1*(seg_pred_resized>.501)
+        seg_pred_refined = 1*(seg_pred_refined_resized>.501)
+        t2 = t2_resized
+        t2_refined = t2_refined_resized
 
     # Save the t2 image, segmentation, and projection results
-    
+        
     ## Save the 3D binary segmentation mask as a numpy array
-    refined_seg_path = os.path.join(new_dir_name,"segmentation_mask.npy")
-    np.save(refined_seg_path, seg_pred)
+    seg_path = os.path.join(new_dir_name,"segmentation_mask.npy")
+    np.save(seg_path, seg_pred)
+    
+    refined_seg_path = os.path.join(new_dir_name,"segmentation_mask_refined.npy")
+    np.save(refined_seg_path, seg_pred_refined)
     
     ## Save the 3D binary segmentation mask as a folder of CSV files
     seg_sub_dir = os.path.join(new_dir_name,"segmentation_mask_csv")
@@ -155,16 +172,33 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
     for i,s in enumerate(seg_pred):
         slice_path = os.path.join(seg_sub_dir,str(i).zfill(3)+".csv")
         np.savetxt(slice_path, s,delimiter=",", fmt='%10.5f')
+        
+    seg_sub_dir = os.path.join(new_dir_name,"segmentation_mask_csv_refined")
+    os.makedirs(seg_sub_dir, exist_ok=True)
+    
+    for i,s in enumerate(seg_pred_refined):
+        slice_path = os.path.join(seg_sub_dir,str(i).zfill(3)+".csv")
+        np.savetxt(slice_path, s,delimiter=",", fmt='%10.5f')
                 
     ## Save the 3D T2 image as a numpy array
     t2_img_path = os.path.join(new_dir_name,"t2.npy")
     np.save(t2_img_path, t2)
+    
+    t2_img_path_refined = os.path.join(new_dir_name,"t2_refined.npy")
+    np.save(t2_img_path_refined, t2_refined)
     
     ## Save the 3D T2 image as a folder of CSV files
     t2_sub_dir = os.path.join(new_dir_name,"t2_csv")
     os.makedirs(t2_sub_dir, exist_ok=True)
     
     for i,s in enumerate(t2):
+        slice_path = os.path.join(t2_sub_dir,str(i).zfill(3)+".csv")
+        np.savetxt(slice_path, s,delimiter=",", fmt='%10.5f')
+        
+    t2_sub_dir = os.path.join(new_dir_name,"t2_csv_refined")
+    os.makedirs(t2_sub_dir, exist_ok=True)
+    
+    for i,s in enumerate(t2_refined):
         slice_path = os.path.join(t2_sub_dir,str(i).zfill(3)+".csv")
         np.savetxt(slice_path, s,delimiter=",", fmt='%10.5f')
     
@@ -195,9 +229,9 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
     ## Save the region average T2 dictionary as a json
     t2_region_json_path = os.path.join(new_dir_name,"region_mean_t2.json")
     with open(t2_region_json_path, 'w') as fp:
-        json.dump(avg_vals_dict, fp)
+        json.dump(avg_vals_dict, fp)   
     
-    # Write to master CSV
+    # Record the average regional T2 values for this image to a summary CSV file where we're recording these metrics for all input images
     output_file.write('%s,' % os.path.basename(vol_zip))
     for r in region_list:
         if r == 'DMP':
@@ -214,4 +248,6 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
     print("Estimated time remaining for all images (minutes):",np.round(files_remaining*avg_pace/60,decimals=1)) 
     
 output_file.close()
-print("Processing finished. Find results in the '''output''' folder:")
+print()
+print("Processing finished. Find results in the 'output' folder:")
+print()
