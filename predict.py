@@ -41,10 +41,24 @@ vol_zip_list = np.sort([os.path.join(input_dir,i) for i in os.listdir(input_dir)
 model_weight_file = 'workspace/model_weights/model_weights_quartileNormalization_echoAug.h5'
 model = get_model(model_weight_file)
 
-# Prepare CSV to write all results to
+# Prepare the CSV where we will write a summary of all the results
+results_summary_path = 'workspace/output/results_summary.csv'
 region_list = ['all', 'superficial', 'deep','L', 'M', 'LA', 'LC', 'LP', 'MA', 'MC', 'MP', 'SL', 'DL', 'SM', 'DM','SLA', 'SLC', 'SLP', 'SMA', 'SMC', 'SMP', 'DLA', 'DLC', 'DLP', 'DMA', 'DMC', 'DMP']
-output_file = open('workspace/output/results_summary.csv', 'w')
-output_file.write('filename,'+','.join(region_list)+'\n')
+
+if os.path.exists(results_summary_path):
+    ## If a summary file already exists, don't analyze images you've already analyzed
+    previous_summary = np.genfromtxt(results_summary_path, delimiter=',', invalid_raise=False,dtype='str')
+    previously_analyzed_images = previous_summary[1:,0]
+    zip_base_names = np.array([os.path.basename(i) for i in vol_zip_list])
+    vol_zip_list = vol_zip_list[~np.isin(zip_base_names, previously_analyzed_images)]
+    
+    ## and keep adding to the summary file you already have started
+    output_file = open(results_summary_path, 'a+')
+    
+else:
+    ## Otherwise, make a new one
+    output_file = open(results_summary_path, 'w')
+    output_file.write('filename,'+','.join(region_list)+'\n')
 
 # Define functions that will help us find the dicom files in the input zip directories
 def get_slices(scan_dir):
@@ -102,16 +116,23 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
                 mese_resized[s,echo,:,:] = resize(mese[s,echo,:,:], (384, 384),anti_aliasing=True)
         mese = mese_resized  
     
-    # Whiten the echo of each slice that is closest to 20ms 
+    # Whiten (i.e. normalize) the echo time of each slice that is closest to 20ms 
     mese_white = []
+    skip_flag = 0
     for i,s in enumerate(mese):
-        if times[i][0] is not None:
+        if ((np.sum(times[i]==None)==0) and (len(times[i])>3)):
             slice_times = times[i]
+            slice_20ms_idx = np.argmin(slice_times-.02)
+            mese_white.append(whiten_img(s[slice_20ms_idx,:,:], normalization = 'quartile'))
         else:
-            times[i][0]=times[i][1]-(times[i][2]-times[i][1])
-            slice_times = times[i]
-        slice_20ms_idx = np.argmin(slice_times-.02)
-        mese_white.append(whiten_img(s[slice_20ms_idx,:,:], normalization = 'quartile'))
+            skip_flag = skip_flag+1
+
+    if skip_flag >0:
+        print("Missing Echo Times. Skipping this image.")
+        output_file.write('%s,' % os.path.basename(vol_zip))
+        output_file.write('Missing Echo Times')
+        output_file.write('\n')
+        continue
     mese_white = np.stack(mese_white).squeeze()
     
     # Estimate segmentation
@@ -125,7 +146,15 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
     seg_pred_refined, t2_refined = t2_threshold(seg_pred, t2, t2_low=0, t2_high=100)
     seg_pred_refined, t2_refined = optimal_binarize(seg_pred_refined, t2_refined, prob_threshold=0.501,voxel_count_threshold=425)
     
-        
+    # Check to make sure that the model found some cartilage
+    if np.sum(seg_pred_refined)<1000:
+        print("Model did not find cartilage. Skipping this image.")
+        output_file.write('%s,' % os.path.basename(vol_zip))
+        output_file.write('Model did not find cartilage')
+        output_file.write('\n')
+        continue
+    
+    # Project the 3D T2 map onto a 2D surface using polar coordinates
     angular_bin = 5
     visualization, thickness_map, min_rho_map, max_rho_map, avg_vals_dict, R = projection(t2_refined, 
                                                                                        thickness_div = 0.5, 
@@ -235,11 +264,16 @@ for zip_num, vol_zip in enumerate(vol_zip_list):
     output_file.write('%s,' % os.path.basename(vol_zip))
     for r in region_list:
         if r == 'DMP':
-            output_file.write('%d' % avg_vals_dict[r])
+            if np.isnan(avg_vals_dict[r]):
+                output_file.write('%s' % str(avg_vals_dict[r]))
+            else:
+                output_file.write('%d' % avg_vals_dict[r])
         else:
-            output_file.write('%d,' % avg_vals_dict[r])
-
-    output_file.write('\n')
+            if np.isnan(avg_vals_dict[r]):
+                output_file.write('%s,' % str(avg_vals_dict[r]))
+            else:
+                output_file.write('%d,' % avg_vals_dict[r])
+    output_file.write('\n')  
     
     time2 = time.time()
     total_time = total_time + (time2-time1)
