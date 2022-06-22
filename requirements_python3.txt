@@ -55,7 +55,7 @@ nbformat==4.4.0
 networkx==2.4
 nibabel==3.1.0
 notebook==6.0.2
-numpy==1.17.4
+numpy==1.22.0
 oauthlib==3.1.0
 olefile==0.46
 opt-einsum==3.1.0
