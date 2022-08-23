@@ -50,7 +50,7 @@ mistune==0.8.4
 #mkl-random==1.1
 #mkl-service==2.3
 more-itertools==8.0.2
-nbconvert==5.6.1
+nbconvert==6.5.1
 nbformat==4.4.0
 networkx==2.4
 nibabel==3.1.0
